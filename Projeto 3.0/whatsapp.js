@@ -260,7 +260,7 @@ async function startSession({ accountId, numberId, requestPairingCode = false })
   // Isso evita chamar requestPairingCode cedo demais e receber 428 (Connection Closed).
   if (requestPairingCode
     entry.tryPairing = async () => {
-      if (entry.pairingStarted || state.creds.registered || !sockets.has(mapKey)) return;
+      
       await generatePairingCode();
     };
   }
