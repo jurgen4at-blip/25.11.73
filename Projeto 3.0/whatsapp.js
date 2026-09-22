@@ -119,7 +119,7 @@ async function startSession({ accountId, numberId, requestPairingCode = false })
   const sockOptions = {
     auth: state, printQRInTerminal: false, logger, browser,
     markOnlineOnConnect: false, syncFullHistory: false,
-    connectTimeoutMs: 60000, keepAliveIntervalMs: 25000, countryCode: 'BR'
+    connectTimeoutMs: 30000, keepAliveIntervalMs: 25000, countryCode: 'BR'
   };
   try {
     // O helper fetchLatestBaileysVersion pode retornar uma versão do WhatsApp Web
