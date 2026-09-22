@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Projeto 3.0 — ADM</title>
+<style>
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;font-family:Arial,Helvetica,sans-serif;background:#020b15;color:#eafaff}
+body{background:radial-gradient(circle at 15% 15%,rgba(0,174,255,.10),transparent 25%),radial-gradient(circle at 82% 12%,rgba(0,124,255,.12),transparent 22%),#020b15}
+button,input,textarea,select{font:inherit}.app{display:grid;grid-template-columns:180px 1fr;min-height:100vh}
+.side{border-right:1px solid #0fbaff;background:linear-gradient(180deg,rgba(4,22,38,.98),rgba(2,11,19,.98));padding:18px 12px;display:flex;flex-direction:column;gap:6px}
+.side-brand{font-size:46px;text-align:center;filter:drop-shadow(0 0 12px #00bfff)}.side-title,.brand{font-weight:800;letter-spacing:.05em;font-size:24px}.side-title span,.brand span{color:#14d7ff}
+.side-sub,.subbrand{color:#58d7ff;font-size:11px;letter-spacing:.16em;font-weight:700}.side nav{display:grid;gap:7px;margin-top:18px}
+.side nav button{padding:10px;border-radius:8px;color:#98eaff;text-decoration:none;display:flex;gap:12px;align-items:center;background:transparent;border:1px solid transparent;text-align:left;cursor:pointer}
+.side nav button.active,.side nav button:hover{background:linear-gradient(90deg,#087cff33,#00d9ff18);border-color:#0bbcff}.side-ghost{margin-top:auto;text-align:center;font-size:78px;filter:drop-shadow(0 0 16px #08c9ff)}.side-foot{text-align:center;color:#c7f7ff;font-size:12px}.side-foot small{color:#11cfff}
+.main{padding:16px 20px;overflow:auto}.top{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #086eaa;padding:10px 0 14px;margin-bottom:12px}.top-user{display:flex;align-items:center;gap:9px;border:1px solid #0b9fd6;border-radius:12px;padding:8px 12px;background:#041625}.top-user>span{font-size:24px}.top-user small{color:#7da7b7}.green{color:#48ee91!important}.icon-btn{border:0;background:none;color:#baf5ff;font-size:22px;cursor:pointer}
+.stat-grid,.admin-grid{display:grid;gap:8px}.stat-grid{grid-template-columns:repeat(4,1fr)}.stat,.panel,.control{background:linear-gradient(180deg,rgba(4,24,41,.96),rgba(3,16,28,.96));border:1px solid #0c9edb;border-radius:8px;box-shadow:0 0 18px rgba(0,174,255,.06)}
+.stat{padding:12px;display:flex;gap:10px;align-items:center}.stat>span{font-size:25px;color:#00d9ff}.stat small{display:block;font-size:9px;color:#64d8f7}.stat b{display:block;font-size:26px}.stat em{font-size:9px;color:#48ee91;font-style:normal}
+.panel{padding:12px}.panel h3,.panel h2{color:#25dcff;margin:0 0 10px;font-size:14px}.panel h4{margin:0;color:#55dfff;font-size:12px}.panel label{display:block;color:#8bdff2;font-size:10px;margin:7px 0 5px}.panel input,.panel textarea,.panel select{width:100%;background:#02111e;border:1px solid #0a7fac;color:#effdff;border-radius:6px;padding:9px;font-size:12px;outline:none}.panel input:focus,.panel textarea:focus,.panel select:focus{border-color:#16d0ff;box-shadow:0 0 0 2px #16d0ff20}.hint{display:block;margin-top:8px;color:#6e9bad;font-size:9px}.btn{border:1px solid #0ab4ff;background:#07304a;color:#eaffff;padding:10px 12px;border-radius:7px;font-weight:700;cursor:pointer}.btn.primary{background:linear-gradient(180deg,#19bfff,#0a8de8);border-color:#16d0ff}.btn.danger{border-color:#ff304b;color:#ff7080;background:#2a0710}.btn.secondary{border-color:#1a8ab7}.btn.small{padding:7px 9px;font-size:11px}.full{width:100%}.actions{display:flex;flex-direction:column;gap:8px}.panel-head{display:flex;justify-content:space-between;align-items:center}.muted{color:#79a5b6;font-size:11px}.mini-row{display:flex;justify-content:space-between;border-top:1px solid #083247;padding:8px 0;font-size:11px}.red{color:#ff5a6b}
+.top-grid{grid-template-columns:1.2fr 1fr .72fr;margin-top:10px}.account-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}.account-panel{min-height:0}.tag{font-size:8px;color:#6edfff;border:1px solid #0d8dbb;padding:4px 6px;border-radius:5px}.full-btn{width:100%;margin-top:10px}.account-list-panel{margin-top:8px}.account-list{display:grid;gap:6px}.account-row{display:flex;justify-content:space-between;gap:12px;align-items:center;border-top:1px solid #07364d;padding:9px 0}.account-row:first-child{border-top:0}.account-row strong{display:block;color:#dffbff;font-size:12px}.account-row span{display:inline-block;color:#56dfff;font-size:9px;margin-top:3px}.account-row small{display:block;color:#759bad;font-size:9px;margin-top:4px}.account-actions{display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end}.account-actions .btn{padding:6px 8px;font-size:9px}
+.card-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.wa-list,.send-list,.session-list{display:grid;gap:4px}.wa-row{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center;padding:8px 0;border-top:1px solid #07364d;font-size:10px}.wa-row:first-child{border-top:0}.wa-row strong{display:block;color:#eaffff}.wa-row small{display:block;color:#6e9db1;margin-top:2px}.wa-status{color:#48ee91;white-space:nowrap}.send-row,.session-row{display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center;border-top:1px solid #07364d;padding:8px 0;font-size:10px}.send-row:first-child,.session-row:first-child{border-top:0}.send-row i,.session-row i{font-style:normal;color:#47ef91;background:#073d2a;padding:4px 6px;border-radius:6px}.send-row i.pause{color:#ffd85b;background:#4a3905}.cancel{background:#2b0610;color:#ff596d;border:1px solid #ff304b;border-radius:5px;padding:5px 8px;font-size:9px;cursor:pointer}
+.table{display:grid;gap:4px;font-size:10px}.table div{padding:7px;border-bottom:1px solid #07364d}.table b{color:#48ef91}.table strong{color:#ff5e70}.report-line{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #07364d;font-size:11px}.report-line b{color:#6ce5ff}.control{padding:10px;margin-top:8px;display:flex;gap:8px;flex-wrap:wrap}.control .btn{flex:0 0 auto}
+.tabs{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:10px}.tab-btn{border:1px solid #0a7fac;background:#041421;color:#79def5;border-radius:8px;padding:9px 14px;cursor:pointer;font-weight:700}.tab-btn.active{background:linear-gradient(180deg,#064a71,#06263b);border-color:#0bd5ff;box-shadow:inset 0 -3px 0 #0bd5ff;color:#eaffff}.tab-panel{display:none}.tab-panel.active{display:block}
+.pairing-box{margin-top:10px;padding:12px;border:1px solid #0ab4ff;border-radius:8px;background:#03131f;text-align:center}.pairing-title{color:#6fdcff;font-size:10px;font-weight:700;letter-spacing:.12em}.pairing-code{margin:8px 0;font-size:28px;font-weight:900;letter-spacing:.18em;color:#eaffff}.pairing-steps{color:#86b8ca;font-size:10px;line-height:1.4}.notice{margin:0 0 10px;padding:10px;border-radius:7px;border:1px solid #0c9edb;background:#03131f;color:#8fdff5;font-size:11px}.notice strong{color:#eaffff}.empty{color:#6e9db1;font-size:10px;padding:10px 0}.field-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.connect-card{border:1px solid #0b9edb;background:linear-gradient(180deg,rgba(4,24,41,.96),rgba(3,16,28,.96));border-radius:8px;padding:12px}.connect-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.quick-connect{margin-top:8px}.bottom-nav{display:none}
+footer{padding:12px 0 4px;color:#5d8fa2;font-size:10px;display:flex;justify-content:space-between}.hidden{display:none!important}
+@media(max-width:1000px){.command-config-grid{grid-template-columns:1fr!important}.app{grid-template-columns:1fr}.side{display:none}.main{padding:12px}.stat-grid{grid-template-columns:repeat(2,1fr)}.top-grid,.account-grid,.card-grid,.field-grid{grid-template-columns:1fr}.bottom-nav{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;margin-top:10px;border:1px solid #0b9edb;border-radius:8px;overflow:hidden}.bottom-nav button{padding:10px;text-align:center;background:#041421;color:#6fdcff;font-size:20px;border:0;cursor:pointer}.bottom-nav button span{display:block;font-size:10px;margin-top:4px}.bottom-nav button.active{background:linear-gradient(180deg,#064a71,#06263b);box-shadow:inset 0 -3px 0 #0bd5ff}.send-row,.session-row{grid-template-columns:1fr auto}.send-row button,.session-row button{grid-column:2;grid-row:2}.send-row i,.session-row i{grid-column:1;grid-row:2;justify-self:start}.account-row{align-items:flex-start;flex-direction:column}.account-actions{justify-content:flex-start}.tabs{display:none}}
+</style>
+</head>
+<body>
+<div class="app admin-app">
+  <aside class="side">
+    <div class="side-brand">👻</div>
+    <div class="side-title">Kx <span>ICE CRASH</span></div>
+    <div class="side-sub">PAINEL ADMINISTRADOR</div>
+    <nav>
+      <button class="nav-tab active" data-tab="home">⌂ <span>Início</span></button>
+      <button class="nav-tab" data-tab="accounts">◉ <span>Usuários</span></button>
+      <button class="nav-tab" data-tab="whatsapp">◌ <span>WhatsApp</span></button>
+      <button class="nav-tab" data-tab="send">➤ <span>Envio</span></button>
+      <button class="nav-tab" data-tab="history">◷ <span>Histórico</span></button>
+    </nav>
+    <div class="side-ghost">👻</div>
+    <div class="side-foot">Projeto 3.0<br><small>ENVIO SEM LIMITES</small></div>
+  </aside>
+
+  <main class="main">
+    <header class="top">
+      <div><div class="brand">Kx <span>ICE CRASH</span></div><div class="subbrand">PAINEL ADMINISTRADOR</div></div>
+      <div class="top-user"><span>👤</span><div>Administrador<br><small id="who"></small></div><button id="logout" class="icon-btn" type="button">↪</button></div>
+    </header>
+
+    <div class="tabs" aria-label="Navegação do administrador">
+      <button class="tab-btn active" data-tab="home" type="button">⌂ Início</button>
+      <button class="tab-btn" data-tab="accounts" type="button">◉ Usuários</button>
+      <button class="tab-btn" data-tab="whatsapp" type="button">◌ WhatsApp</button>
+      <button class="tab-btn" data-tab="send" type="button">➤ Envio</button>
+      <button class="tab-btn" data-tab="history" type="button">◷ Histórico</button>
+    </div>
+
+    <section id="tab-home" class="tab-panel active">
+      <div class="notice"><strong>Início:</strong> aqui ficam o resumo do sistema e o acesso rápido para conectar um WhatsApp.</div>
+      <section class="stat-grid">
+        <div class="stat"><span>◉</span><div><small>USUÁRIOS ATIVOS</small><b id="usersActive">0</b><em>contas em uso</em></div></div>
+        <div class="stat"><span>◔</span><div><small>WHATSAPP'S CONECTADOS</small><b id="waCount">0</b><em>neste ADM</em></div></div>
+        <div class="stat"><span>➤</span><div><small>TOTAL DE ENVIOS</small><b id="sendCount">0</b><em>nesta sessão</em></div></div>
+        <div class="stat"><span>◷</span><div><small>STATUS DO SISTEMA</small><b class="green">Online</b><em>servidor ativo</em></div></div>
+      </section>
+
+      <section class="admin-grid top-grid">
+        <article class="panel">
+          <h3>◌ CONECTAR WHATSAPP</h3>
+          <p class="muted">O botão abaixo abre a área de conexão do WhatsApp para este administrador.</p>
+          <button id="goConnect" class="btn primary full quick-connect" type="button">◔ Conectar WhatsApp</button>
+        </article>
+        <article class="panel">
+          <h3>◷ CONFIGURAÇÕES DE ENVIO</h3>
+          <label>Mensagem padrão</label><textarea id="message" rows="4" placeholder="Mensagem definida pelo ADM"></textarea>
+          <small class="hint">A configuração global fica disponível também na área de Envio.</small>
+        </article>
+        <article class="panel actions">
+          <h3>AÇÕES RÁPIDAS</h3>
+          <button id="goSend" class="btn primary" type="button">➤ Abrir Envio</button>
+          <button class="btn secondary" type="button" id="saveSettingsHome">Salvar configuração</button>
+        </article>
+      </section>
+
+      <section class="account-grid">
+        <article class="panel account-panel">
+          <div class="panel-head"><h3>👤 ADICIONAR USUÁRIO</h3><span class="tag">COM PRAZO</span></div>
+          <p class="muted">Crie o acesso de um usuário comum.</p>
+          <label>Nome</label><input id="userName" placeholder="Nome do usuário">
+          <label>Login</label><input id="userLogin" placeholder="Login">
+          <label>Senha</label><input id="userPassword" type="password" placeholder="Senha">
+          <label>Prazo de acesso (dias)</label><input id="userDays" type="number" min="1" max="3650" value="30">
+          <button id="addUser" class="btn primary full-btn" type="button">Adicionar usuário</button>
+        </article>
+        <article class="panel account-panel">
+          <div class="panel-head"><h3>🛡️ ADICIONAR ADMINISTRADOR</h3><span class="tag">COM PRAZO</span></div>
+          <p class="muted">Somente o ADM principal pode criar outro administrador.</p>
+          <label>Nome</label><input id="adminName" placeholder="Nome do administrador">
+          <label>Login</label><input id="adminLogin" placeholder="Login">
+          <label>Senha</label><input id="adminPassword" type="password" placeholder="Senha">
+          <label>Prazo de acesso (dias)</label><input id="adminDays" type="number" min="1" max="3650" value="30">
+          <button id="addAdmin" class="btn primary full-btn" type="button">Adicionar administrador</button>
+        </article>
+      </section>
+
+      <section class="panel account-list-panel">
+        <div class="panel-head"><h3>🔐 CONTAS CADASTRADAS</h3><span id="accountCount">0</span></div>
+        <p class="muted">O ADM principal é o único acesso permanente. As demais contas têm prazo.</p>
+        <div id="accountList" class="account-list"></div>
+      </section>
+    </section>
+
+    <section id="tab-accounts" class="tab-panel">
+      <div class="notice"><strong>Usuários:</strong> cadastros e prazos de acesso.</div>
+      <section class="account-grid">
+        <article class="panel account-panel">
+          <div class="panel-head"><h3>👤 ADICIONAR USUÁRIO</h3><span class="tag">COM PRAZO</span></div>
+          <label>Nome</label><input id="userName2" placeholder="Nome do usuário">
+          <label>Login</label><input id="userLogin2" placeholder="Login">
+          <label>Senha</label><input id="userPassword2" type="password" placeholder="Senha">
+          <label>Prazo de acesso (dias)</label><input id="userDays2" type="number" min="1" max="3650" value="30">
+          <button id="addUser2" class="btn primary full-btn" type="button">Adicionar usuário</button>
+        </article>
+        <article class="panel account-panel">
+          <div class="panel-head"><h3>🛡️ ADMINISTRADOR</h3><span class="tag">COM PRAZO</span></div>
+          <label>Nome</label><input id="adminName2" placeholder="Nome do administrador">
+          <label>Login</label><input id="adminLogin2" placeholder="Login">
+          <label>Senha</label><input id="adminPassword2" type="password" placeholder="Senha">
+          <label>Prazo de acesso (dias)</label><input id="adminDays2" type="number" min="1" max="3650" value="30">
+          <button id="addAdmin2" class="btn primary full-btn" type="button">Adicionar administrador</button>
+        </article>
+      </section>
+      <section class="panel account-list-panel"><div class="panel-head"><h3>🔐 CONTAS CADASTRADAS</h3><span id="accountCount2">0</span></div><div id="accountList2" class="account-list"></div></section>
+    </section>
+
+    <section id="tab-whatsapp" class="tab-panel">
+      <div class="notice"><strong>WhatsApp:</strong> conecte pelo código de pareamento, sem QR Code e sem token.</div>
+      <div class="card-grid">
+        <article class="connect-card">
+          <h3>◌ CONECTAR WHATSAPP</h3>
+          <p class="muted">Cadastre o número que será usado por este ADM para envio.</p>
+          <form id="connectForm">
+            <div>
+              <label for="pairingPhone">Número do WhatsApp</label>
+              <input id="pairingPhone" required inputmode="tel" autocomplete="tel" placeholder="5511999999999">
+            </div>
+            <div class="connect-actions"><button class="btn primary" id="saveConnect" type="submit">Conectar</button><button class="btn secondary" id="refreshNumbers" type="button">Atualizar</button></div>
+          </form>
+          <div id="pairingBox" class="pairing-box" hidden>
+            <div class="pairing-title">CÓDIGO DE PAREAMENTO</div>
+            <div id="pairingCode" class="pairing-code">--------</div>
+            <div class="pairing-steps"><strong>Como conectar:</strong><br>WhatsApp → Dispositivos conectados → Conectar dispositivo → Conectar com número de telefone → digite o código acima.</div>
+          </div>
+          <p class="hint">Digite apenas o número com DDI. Depois de tocar em Conectar, o código aparecerá aqui.</p>
+        </article>
+        <article class="panel">
+          <div class="panel-head"><h3>◔ NÚMEROS CONECTADOS</h3><span id="waCountPanel">0</span></div>
+          <div id="connectedList" class="wa-list"></div>
+        </article>
+      </div>
+    </section>
+
+    <section id="tab-send" class="tab-panel">
+      <div class="notice"><strong>Envio:</strong> o ADM controla a mensagem. Os usuários só informam o número de destino.</div>
+      <section class="card-grid">
+        <article class="panel">
+          <h3>➤ NOVO ENVIO</h3>
+          <form id="sendForm">
+            <label>WhatsApp de envio</label><select id="sender"><option value="">Conecte um WhatsApp primeiro</option></select>
+            <label>Alvos (um ou vários números)</label><textarea id="target" rows="5" inputmode="tel" placeholder="Um número por linha, ou separados por espaço/vírgula"></textarea>
+            <div class="notice" style="margin-top:8px"><strong>Mensagem:</strong> será usada a mensagem salva pelo ADM acima. O conteúdo não é mostrado aos usuários.</div>
+            <button id="sendButton" class="btn primary full" type="submit">➤ Iniciar envio automático</button>
+          </form>
+        </article>
+        <article class="panel">
+          <h3>◷ INTERVALO GLOBAL</h3>
+          <label for="globalMessage">Mensagem que todos os usuários irão enviar</label><textarea id="globalMessage" rows="6" placeholder="Digite aqui a mensagem que será enviada aos destinatários."></textarea>
+          <div class="command-config-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">
+            <div><label for="commandAndroidMessage">🤖 Mensagem — Crash Android</label><textarea id="commandAndroidMessage" rows="4" placeholder="Mensagem usada pelo comando Android"></textarea></div>
+            <div><label for="commandIosMessage"> Mensagem — Crash iOS</label><textarea id="commandIosMessage" rows="4" placeholder="Mensagem usada pelo comando iOS"></textarea></div>
+          </div>
+          <div class="field-grid"><div><label>Intervalo entre envios (segundos)</label><input id="interval" type="number" min="1" max="3600" value="3"></div><div><label>Status</label><div class="hint" style="padding-top:10px">O usuário não vê esta mensagem nem pode alterá-la.</div></div></div>
+          <button id="saveSettings" class="btn primary full-btn" type="button">💾 Salvar mensagem e configuração</button>
+          <small id="messageSaved" class="hint" aria-live="polite"></small>
+        </article>
+      </section>
+      <section class="panel" style="margin-top:8px"><div class="panel-head"><h3>➤ SESSÕES INICIADAS</h3><span id="sendCountPanel">0</span></div><div id="sessionList" class="session-list"><div class="empty">Nenhuma sessão iniciada.</div></div></section>
+    </section>
+
+    <section id="tab-history" class="tab-panel">
+      <div class="notice"><strong>Histórico:</strong> resumo das atividades desta área.</div>
+      <section class="admin-grid" style="grid-template-columns:1.4fr 1fr">
+        <article class="panel"><h3>◷ HISTÓRICO DE ENVIO</h3><div id="historyList" class="table"><div>Nenhum envio registrado nesta sessão.</div></div></article>
+        <article class="panel"><h3>▤ RELATÓRIOS RÁPIDOS</h3><div class="report-line">➤ Enviados <b id="reportSent">0</b></div><div class="report-line">◉ Falhas <b id="reportFail">0</b></div><div class="report-line">◷ Pendentes <b id="reportPending">0</b></div></article>
+      </section>
+    </section>
+
+    <div id="actionNotice" class="notice hidden" role="status"></div>
+    <footer>Projeto 3.0 // Painel Administrador <span id="today"></span></footer>
+    <div class="bottom-nav">
+      <button class="active" data-tab="home" type="button">⌂<span>Início</span></button>
+      <button data-tab="whatsapp" type="button">◌<span>WhatsApp</span></button>
+      <button data-tab="send" type="button">➤<span>Envio</span></button>
+    </div>
+  </main>
+</div>
+<script src="/admin.js"></script>
+</body>
+</html>

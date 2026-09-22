@@ -1,0 +1,6 @@
+node_modules/
+.env
+kx-ice-crash.db
+kx-ice-crash.db-shm
+kx-ice-crash.db-wal
+data/whatsapp-sessions/

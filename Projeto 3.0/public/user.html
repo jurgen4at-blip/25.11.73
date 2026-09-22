@@ -1,0 +1,542 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <title>Projeto 3.0 — Painel do Usuário</title>
+  <style>
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;font-family:Arial,Helvetica,sans-serif;background:#020b15;color:#eafaff}body{background:radial-gradient(circle at 15% 15%,rgba(0,174,255,.10),transparent 25%),radial-gradient(circle at 82% 12%,rgba(0,124,255,.12),transparent 22%),#020b15}.app{display:grid;grid-template-columns:180px 1fr;min-height:100vh}.side{border-right:1px solid #0fbaff;background:linear-gradient(180deg,rgba(4,22,38,.98),rgba(2,11,19,.98));padding:18px 12px;display:flex;flex-direction:column;gap:6px}.side-brand{font-size:46px;text-align:center;filter:drop-shadow(0 0 12px #00bfff)}.side-title,.brand{font-weight:800;letter-spacing:.05em;font-size:24px}.side-title span,.brand span{color:#14d7ff}.side-sub,.subbrand{color:#58d7ff;font-size:11px;letter-spacing:.16em;font-weight:700}.side nav{display:grid;gap:7px;margin-top:18px}.side nav a{padding:10px;border-radius:8px;color:#98eaff;text-decoration:none;display:flex;gap:12px;align-items:center}.side nav a.active,.side nav a:hover{background:linear-gradient(90deg,#087cff33,#00d9ff18);border:1px solid #0bbcff}.side-ghost{margin-top:auto;text-align:center;font-size:78px;filter:drop-shadow(0 0 16px #08c9ff)}.side-foot{text-align:center;color:#c7f7ff;font-size:12px}.side-foot small{color:#11cfff}.main{padding:16px 20px;overflow:auto}.top,.user-top{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #086eaa;padding:10px 0 14px;margin-bottom:12px}.top-user{display:flex;align-items:center;gap:9px;border:1px solid #0b9fd6;border-radius:12px;padding:8px 12px;background:#041625}.top-user>span{font-size:24px}.top-user small{color:#7da7b7}.green{color:#48ee91!important}.icon-btn{border:0;background:none;color:#baf5ff;font-size:22px;cursor:pointer}.stat-grid,.admin-grid{display:grid;gap:8px}.stat-grid{grid-template-columns:repeat(4,1fr)}.stat,.panel,.control{background:linear-gradient(180deg,rgba(4,24,41,.96),rgba(3,16,28,.96));border:1px solid #0c9edb;border-radius:8px;box-shadow:0 0 18px rgba(0,174,255,.06)}.stat{padding:12px;display:flex;gap:10px;align-items:center}.stat>span{font-size:25px;color:#00d9ff}.stat small{display:block;font-size:9px;color:#64d8f7}.stat b{display:block;font-size:26px}.stat em{font-size:9px;color:#48ee91;font-style:normal}.top-grid{grid-template-columns:1.2fr 1fr .72fr;margin-top:10px}.mid-grid{grid-template-columns:.8fr 1fr 1.4fr;margin-top:8px}.bottom-grid{grid-template-columns:1.4fr 1fr;margin-top:8px}.panel{padding:12px}.panel h3,.panel h2{color:#25dcff;margin:0 0 10px;font-size:14px}.panel h4{margin:0;color:#55dfff;font-size:12px}.panel label{display:block;color:#8bdff2;font-size:10px;margin:7px 0 5px}.panel input,.panel textarea,.panel select{width:100%;background:#02111e;border:1px solid #0a7fac;color:#effdff;border-radius:6px;padding:9px;font-size:12px;outline:none}.hint{display:block;margin-top:8px;color:#6e9bad;font-size:9px}.speed-row{display:flex;align-items:center;gap:10px}.speed-row input{flex:1}.speed-value{border:1px solid #0c9edb;border-radius:7px;padding:8px 10px;color:#65dcff;min-width:54px;text-align:center}.btn{border:1px solid #0ab4ff;background:#07304a;color:#eaffff;padding:10px 12px;border-radius:7px;font-weight:700;cursor:pointer}.btn.primary{background:linear-gradient(180deg,#19bfff,#0a8de8);border-color:#16d0ff}.btn.danger{border-color:#ff304b;color:#ff7080;background:#2a0710}.btn.secondary{border-color:#1a8ab7}.btn.small{margin-top:8px;padding:7px 9px;font-size:11px}.actions{display:flex;flex-direction:column;gap:8px}.panel-head{display:flex;justify-content:space-between;align-items:center}.muted{color:#79a5b6;font-size:11px}.mini-row{display:flex;justify-content:space-between;border-top:1px solid #083247;padding:8px 0;font-size:11px}.red{color:#ff5a6b}.wa-list{display:grid;gap:3px}.wa-list>div{border-bottom:1px solid #07364d;padding:7px 0;color:#bfefff;font-size:10px}.wa-list small{display:block;color:#618fa4}.wa-list span{float:right;color:#47ef91}.send-list{display:grid;gap:4px}.send-list>div{display:grid;grid-template-columns:1fr auto auto;gap:7px;align-items:center;border-bottom:1px solid #07364d;padding:6px 0;font-size:10px}.send-list i{font-style:normal;color:#47ef91;background:#073d2a;padding:4px 6px;border-radius:6px}.send-list i.pause{color:#ffd85b;background:#4a3905}.send-list button{background:#2c0710;color:#ff7080;border:1px solid #ff304b;border-radius:5px;font-size:9px;padding:4px 6px}.table{display:grid;gap:4px;font-size:10px}.table div{padding:7px;border-bottom:1px solid #07364d}.table b{color:#48ef91}.table strong{color:#ff5e70}.report-line{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #07364d;font-size:11px}.report-line b{color:#6ce5ff}.control{padding:10px;margin-top:8px;display:flex;gap:8px}.control .btn{flex:0 0 auto}footer{padding:12px 0 4px;color:#5d8fa2;font-size:10px;display:flex;justify-content:space-between}.user-shell{max-width:1180px;margin:0 auto;padding:18px}.hero{display:flex;justify-content:space-between;align-items:center;min-height:180px;background:radial-gradient(circle at 75% 40%,rgba(0,194,255,.22),transparent 30%);margin-bottom:10px}.hero h2{color:#27dfff;font-size:22px;margin:0 0 8px}.hero p{color:#8ac8e8;line-height:1.5}.hero-ghost{font-size:130px;filter:drop-shadow(0 0 24px #00bfff)}.user-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.full{width:100%;margin:9px 0}.connected,.authorized,.sessions,.banner,.hint-box{margin-top:8px;border:1px solid #0b80ae;border-radius:7px;background:#03131f}.connected{padding:9px}.connected>div{padding-top:8px;font-size:11px}.connected small{display:block;color:#6e9db1}.connected span{float:right}.authorized{padding:9px}.authorized>div:not(.panel-head){border-top:1px solid #07364d;padding:8px 0;font-size:10px;color:#b7efff}.hint-box{padding:10px;color:#72a4b9;font-size:9px}.sessions{padding:9px}.session-row{display:flex;justify-content:space-between;align-items:center;border-top:1px solid #07364d;padding:7px 0;font-size:10px}.cancel{background:#2b0610;color:#ff596d;border:1px solid #ff304b;border-radius:5px;padding:4px 8px}.banner{overflow:hidden}.banner img{display:block;width:100%;height:128px;object-fit:cover;object-position:center}.bottom-nav{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;margin-top:10px;border:1px solid #0b9edb;border-radius:8px;overflow:hidden}.bottom-nav a{padding:10px;text-align:center;background:#041421;color:#6fdcff;font-size:20px}.bottom-nav a span{display:block;font-size:10px;margin-top:4px}.bottom-nav a.active{background:linear-gradient(180deg,#064a71,#06263b);box-shadow:inset 0 -3px 0 #0bd5ff}.auth-page{display:grid;place-items:center;padding:20px}.auth-card{width:min(420px,100%);padding:28px;border:1px solid #0ba8e9;border-radius:14px;background:linear-gradient(180deg,#061c2f,#03121f);box-shadow:0 0 40px rgba(0,196,255,.1)}.ghost-logo{text-align:center;font-size:72px;filter:drop-shadow(0 0 18px #00bfff)}.auth-card .brand{font-size:30px;text-align:center;margin-top:5px}.auth-card .subbrand{text-align:center;margin-bottom:22px}.auth-card label{display:block;font-size:11px;color:#8fdff5;margin:9px 0 5px}.auth-card input{width:100%;padding:12px;border-radius:8px;border:1px solid #0a79a5;background:#02101a;color:#fff}.auth-card .btn{width:100%;margin-top:14px}.error{color:#ff6376;font-size:11px;min-height:18px;margin-top:9px}
+@media(max-width:1000px){.app{grid-template-columns:1fr}.side{display:none}.stat-grid{grid-template-columns:repeat(2,1fr)}.top-grid,.mid-grid,.bottom-grid,.user-grid{grid-template-columns:1fr}.user-shell{padding:12px}.hero{min-height:140px}.hero-ghost{font-size:92px}}
+.account-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}.account-panel{min-height:0}.tag{font-size:8px;color:#6edfff;border:1px solid #0d8dbb;padding:4px 6px;border-radius:5px}.full-btn{width:100%;margin-top:10px}.account-list-panel{margin-top:8px}.account-list{display:grid;gap:6px}.account-row{display:flex;justify-content:space-between;gap:12px;align-items:center;border-top:1px solid #07364d;padding:9px 0}.account-row:first-child{border-top:0}.account-row strong{display:block;color:#dffbff;font-size:12px}.account-row span{display:inline-block;color:#56dfff;font-size:9px;margin-top:3px}.account-row small{display:block;color:#759bad;font-size:9px;margin-top:4px}.account-actions{display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end}.account-actions .btn{padding:6px 8px;font-size:9px}@media(max-width:1000px){.account-grid{grid-template-columns:1fr}.account-row{align-items:flex-start;flex-direction:column}.account-actions{justify-content:flex-start}}
+
+
+/* ===== Projeto 3.0 v2.2 — user panel matching the approved visual ===== */
+.user-shell-v22{
+  width:min(1180px,100%);
+  margin:0 auto;
+  padding:16px 18px 12px;
+}
+.user-top-v22{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:20px;
+  border-bottom:1px solid #087db2;
+  padding:0 0 14px;
+}
+.user-brand-wrap{
+  display:flex;
+  align-items:center;
+  min-width:0;
+}
+.brand-ghost{
+  width:78px;
+  height:78px;
+  object-fit:cover;
+  object-position:center top;
+  border-radius:18px;
+  margin-right:10px;
+  mix-blend-mode:screen;
+  filter:drop-shadow(0 0 13px rgba(0,200,255,.55));
+}
+.brand-large{font-size:29px}
+.user-profile{min-width:210px}
+.user-profile strong{
+  display:block;
+  color:#eaffff;
+  font-size:13px;
+}
+.profile-icon{font-size:27px;color:#2ad9ff}
+.hero-v22{
+  min-height:205px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  border-bottom:1px solid rgba(7,89,126,.35);
+  background:
+    radial-gradient(circle at 77% 55%,rgba(0,194,255,.22),transparent 28%),
+    linear-gradient(180deg,rgba(0,0,0,0),rgba(0,18,30,.2));
+}
+.hero-copy{padding-left:42px}
+.hero-copy h2{
+  color:#2bdfff;
+  font-size:29px;
+  margin:0 0 9px;
+  letter-spacing:.01em;
+}
+.hero-copy p{
+  color:#91cbed;
+  line-height:1.48;
+  font-size:15px;
+}
+.hero-ghost-img{
+  width:390px;
+  height:230px;
+  object-fit:cover;
+  object-position:center 37%;
+  mix-blend-mode:screen;
+  filter:drop-shadow(0 0 24px rgba(0,180,255,.28));
+  margin-right:5px;
+}
+.user-grid-v22{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:12px;
+  margin-top:12px;
+}
+.user-card-v22{
+  min-height:0;
+  padding:20px;
+  border-radius:10px;
+  border:1px solid #0ca5e4;
+  background:
+    radial-gradient(circle at 90% 0%,rgba(0,185,255,.07),transparent 32%),
+    linear-gradient(180deg,rgba(5,26,44,.98),rgba(2,16,29,.98));
+}
+.card-title-row{
+  display:flex;
+  align-items:flex-start;
+  gap:12px;
+  margin-bottom:16px;
+}
+.card-title-row h2{
+  font-size:18px;
+  letter-spacing:.08em;
+  margin:0 0 6px;
+}
+.card-title-row p{
+  color:#82c3df;
+  font-size:12px;
+  line-height:1.45;
+  margin:0;
+}
+.title-icon{
+  color:#13d7ff;
+  font-size:34px;
+  line-height:1;
+  text-shadow:0 0 15px rgba(0,208,255,.35);
+}
+.send-icon{font-size:36px}
+.connected-v22,.authorized-v22,.sessions-v22,.banner-v22,.hint-box{
+  border-color:#0a76a4;
+  background:#03131f;
+  border-radius:8px;
+}
+.connected-v22{padding:12px;margin-top:10px}
+.connected-v22 h4,.authorized-v22 h4,.sessions-v22 h4{
+  font-size:12px;
+}
+.wa-row{
+  display:grid;
+  grid-template-columns:auto 1fr auto;
+  gap:8px;
+  align-items:center;
+  padding-top:10px;
+}
+.wa-check{color:#48ef91}
+.wa-row strong{display:block;font-size:11px}
+.wa-row small{display:block;color:#6c9db3;font-size:9px;margin-top:2px}
+.online-label{font-size:9px}
+.authorized-list{display:grid;gap:7px;margin-top:6px}
+.authorized-empty{padding:10px 0;color:#5f8798;font-size:10px;text-align:center}
+.authorized-live-row{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;border-top:1px solid #07364d;padding:10px 0}
+.authorized-live-number{color:#e6fbff;font-size:12px;font-weight:800;letter-spacing:.02em}
+.authorized-live-status{color:#48ee91;font-size:9px;font-weight:900;letter-spacing:.08em;text-transform:uppercase}
+.authorized-v22{padding:12px;margin-top:8px}
+.authorized-v22 .panel-head{margin-bottom:4px}
+.authorized-v22 .panel-head>span{color:#92dfff;font-size:10px}
+.authorized-row{
+  border-top:1px solid #07364d;
+  padding:8px 0;
+  color:#bdefff;
+  font-size:10px;
+}
+.hint-box{
+  margin-top:10px;
+  padding:11px;
+  color:#72a4b9;
+  font-size:9px;
+  line-height:1.45;
+}
+.send-v22 label{
+  font-size:12px;
+  color:#d8f7ff;
+  margin-top:4px;
+}
+.target-input{
+  padding:12px 13px!important;
+  font-size:12px!important;
+  margin-top:4px;
+  border-radius:8px!important;
+}
+.start-btn{
+  min-height:50px;
+  font-size:14px;
+  margin-top:10px!important;
+}
+.sessions-v22{
+  padding:10px 12px;
+  margin-top:12px;
+}
+.sessions-v22 .panel-head{
+  margin-bottom:4px;
+}
+.session-row-v22{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  border-top:1px solid #07364d;
+  padding:8px 2px;
+  color:#bff4ff;
+  font-size:10px;
+}
+.cancel{
+  min-width:28px;
+  padding:4px 8px;
+  background:#2b0610;
+  color:#ff596d;
+  border:1px solid #ff304b;
+  border-radius:5px;
+  font-weight:800;
+}
+.banner-v22{
+  margin-top:12px;
+  overflow:hidden;
+  height:176px;
+}
+.banner-v22 img{
+  display:block;
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  object-position:center;
+  opacity:.94;
+}
+.bottom-nav-v22{
+  margin-top:13px;
+}
+.send-status-box{margin-top:12px;border:1px solid #0a76a4;border-radius:8px;background:#03131f;padding:12px;}
+.send-status-line{display:flex;align-items:center;gap:8px;color:#cfffff;font-weight:800;font-size:12px;min-height:24px;}
+.send-train{display:inline-block;animation:trainMove 1s ease-in-out infinite;}
+@keyframes trainMove{0%,100%{transform:translateX(0)}50%{transform:translateX(8px)}}
+.send-status-box[data-state=success] .send-status-line{color:#48ee91}
+.send-status-box[data-state=error] .send-status-line{color:#ff6475}
+.send-status-detail{margin-top:4px;color:#78a9bc;font-size:10px;min-height:15px;}
+.send-progress{height:13px;border:1px solid #0a76a4;border-radius:99px;background:#02101b;overflow:hidden;margin-top:9px;}
+.send-progress-bar{width:0%;height:100%;background:linear-gradient(90deg,#0c8fe8,#16ddff);transition:width .35s ease;}
+.send-usage{display:flex;justify-content:space-between;align-items:center;margin-top:8px;color:#c9f7ff;font-size:10px;}
+.send-usage strong{color:#5edfff;font-size:12px;}
+.send-limit-note{color:#6b98aa;font-size:9px;margin-top:3px;}
+.send-card-sub{color:#82c3df;font-size:11px;line-height:1.45;margin:0 0 10px;}
+.footer-v22{
+  padding:11px 2px 2px;
+  color:#5e94a8;
+  font-size:9px;
+  display:flex;
+  justify-content:space-between;
+}
+@media (max-width:1000px){
+  .user-shell-v22{padding:12px}
+  .hero-v22{min-height:170px}
+  .hero-copy{padding-left:12px}
+  .hero-copy h2{font-size:23px}
+  .hero-ghost-img{width:285px;height:180px}
+  .user-grid-v22{grid-template-columns:1fr}
+}
+@media (max-width:620px){
+  .user-top-v22{align-items:flex-start}
+  .brand-ghost{width:54px;height:54px}
+  .brand-large{font-size:21px}
+  .subbrand{font-size:9px}
+  .user-profile{min-width:145px;padding:6px 8px}
+  .hero-v22{min-height:150px}
+  .hero-ghost-img{width:210px;height:150px}
+  .hero-copy{padding-left:6px}
+  .hero-copy h2{font-size:20px}
+  .hero-copy p{font-size:12px}
+  .user-card-v22{padding:14px}
+}
+
+
+/* v2.4 mobile refinements */
+@media (max-width: 600px) {
+  .user-shell-v22 { padding: 10px; }
+  .user-top-v22 { align-items: flex-start; flex-wrap: wrap; }
+  .brand-large { font-size: 22px; }
+  .brand-ghost { width: 54px; height: 54px; margin-right: 8px; }
+  .user-profile { min-width: 0; width: 100%; }
+  .hero-v22 { min-height: 150px; }
+  .hero-copy { padding: 16px; }
+  .hero-copy h2 { font-size: 22px; }
+  .hero-ghost-img { width: 180px; height: 120px; }
+  .user-grid-v22 { grid-template-columns: 1fr; }
+  .banner img { height: 110px; }
+  .auth-card { padding: 22px 16px; }
+}
+
+/* v2.13 — separated user areas: Inicio/Números vs Envio */
+.user-tabs{margin-top:12px;}
+.user-tab-panel{display:none;}
+.user-tab-panel.active-tab{display:block;}
+.user-tab-panel > .user-card-v22{width:100%;}
+.user-tab-panel .numbers-card{max-width:100%;}
+.user-tab-panel .send-v22{max-width:100%;}
+.bottom-nav-v22 a{cursor:pointer; text-decoration:none;}
+.bottom-nav-v22 a.active{position:relative;}
+.bottom-nav-v22 a[data-tab="config"]{opacity:.7;}
+@media (min-width: 1001px){
+  .user-tab-panel > .user-card-v22{min-height:0;}
+}
+
+
+/* v2.31 — fila automática de envios, validade e modal de conexão isolado do Envio */
+.target-textarea{
+  width:100%;
+  min-height:96px;
+  resize:vertical;
+  font-family:inherit;
+  line-height:1.55;
+  white-space:pre-wrap;
+}
+.send-target-hint{display:block;margin-top:6px;font-size:9px;color:#6e9bad;}
+.expiry-text{display:block;margin-top:4px;color:#69dcff;font-weight:700;letter-spacing:.02em;}
+.footer-v22>div{display:flex;flex-direction:column;gap:2px;}
+.modal-backdrop{position:fixed;inset:0;z-index:50;display:grid;place-items:center;background:rgba(0,0,0,.76);padding:18px;}
+.modal-backdrop[hidden]{display:none!important;}
+.action-notice[hidden]{display:none!important;}
+.modal-card{width:min(520px,100%);border:1px solid #0ca5e4;border-radius:12px;background:linear-gradient(180deg,#061d30,#03131f);padding:18px;box-shadow:0 18px 60px rgba(0,0,0,.55);}
+.modal-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:10px;}
+.modal-head h3{margin:0;color:#22dfff;font-size:18px;}
+.connect-number-status{margin:8px 0 0;padding:8px 10px;border:1px solid #0a79a5;border-radius:8px;background:#03131f;color:#9fe7ff;font-size:11px;font-weight:800;}
+.connect-state{margin-top:8px;padding:8px 10px;border-radius:8px;border:1px solid #0a79a5;background:#02111e;color:#7fadc0;font-size:10px;font-weight:800;}
+.connect-state[data-state=working]{color:#5edfff;}
+.connect-state[data-state=success]{color:#48ee91;border-color:#1e9c5b;}
+.connect-state[data-state=error]{color:#ff6475;border-color:#a62636;}
+.connect-howto{margin-top:10px;padding:10px 12px;border:1px solid #0a668d;border-radius:9px;background:#03121e;color:#82b7c9;font-size:10px;line-height:1.5;display:grid;gap:3px;}
+.connect-howto strong{color:#5fe2ff;font-size:11px;}
+.connect-howto b{color:#dffbff;}
+
+.footer-copy{display:flex;flex-direction:column;gap:3px;}
+.expiry-text{font-size:10px;}
+.modal-head p{margin:5px 0 0;color:#7eabc0;font-size:10px;line-height:1.4;}
+.modal-card input{width:100%;margin-top:4px;padding:11px;border:1px solid #0a79a5;border-radius:8px;background:#02101a;color:#fff;}
+.modal-card label{display:block;margin-top:9px;color:#9ddff4;font-size:11px;}
+.modal-actions{display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap;margin-top:14px;}
+.pairing-title{margin-top:12px;color:#61dfff;font-size:11px;font-weight:800;}
+.pairing-code{margin-top:4px;color:#fff;font-size:24px;letter-spacing:.16em;font-weight:900;}
+.pairing-steps{margin-top:8px;color:#8cb7c8;font-size:10px;line-height:1.45;}
+@media(max-width:600px){.modal-backdrop{padding:10px}.modal-card{padding:14px}.modal-actions .btn{flex:1;min-width:120px}.target-textarea{min-height:90px}}
+
+.send-row-status{font-size:10px;font-weight:800;min-width:78px;text-align:right}.send-row-status.green{color:#48ee91}.send-row-status.red{color:#ff6475}.send-row-status.yellow{color:#ffd35a}.send-row-status{color:#79aabd}.session-row .cancel{margin-left:6px;}
+</style>
+
+<style>
+html, body { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+button, input, textarea, select, a { touch-action: manipulation; }
+@media (max-width: 600px) {
+  .modal-card input,
+  .panel input,
+  .panel textarea,
+  .panel select,
+  .auth-card input { font-size: 16px !important; }
+  .pairing-box { margin-top: 14px; padding: 14px; border: 1px solid #10cfff; border-radius: 12px; background: radial-gradient(circle at 50% 0%, rgba(0,210,255,.14), transparent 60%), #021522; text-align:center; box-shadow: 0 0 24px rgba(0,190,255,.12); }
+  .pairing-code { font-size: 30px !important; letter-spacing: .22em !important; line-height: 1.25; padding: 8px 0; word-break: keep-all; }
+  .pairing-steps { text-align:left; font-size:11px; line-height:1.55; }
+}
+.pairing-box { margin-top: 14px; padding: 14px; border: 1px solid #10cfff; border-radius: 12px; background: radial-gradient(circle at 50% 0%, rgba(0,210,255,.12), transparent 60%), #021522; box-shadow: 0 0 24px rgba(0,190,255,.10); }
+.pairing-code { text-align:center; }
+</style>
+</head>
+<body>
+  <div class="user-shell-v22">
+    <header class="user-top-v22">
+      <div class="user-brand-wrap">
+        <img class="brand-ghost" src="/assets/ghost-header.jpg" alt="Fantasma Projeto 3.0">
+        <div>
+          <div class="brand brand-large">Kx <span>ICE CRASH</span></div>
+          <div class="subbrand">PAINEL DO USUÁRIO</div>
+        </div>
+      </div>
+      <div class="top-user user-profile">
+        <span class="profile-icon">♙</span>
+        <div>
+          <strong id="userName">Usuário</strong>
+          <small class="green">● Online</small>
+        </div>
+        <button id="logout" class="icon-btn" type="button">☰</button>
+      </div>
+    </header>
+
+    <section class="hero-v22">
+      <div class="hero-copy">
+        <h2>Envio sem limites</h2>
+        <p>Conecte, adicione seus números<br>e comece a enviar!</p>
+      </div>
+      <img class="hero-ghost-img" src="/assets/ghost-hero.jpg" alt="">
+    </section>
+
+    <main id="userTabs" class="user-tabs">
+      <section id="tab-home" class="user-tab-panel active-tab" aria-labelledby="tab-home-link">
+        <article class="panel user-card-v22 numbers-card">
+          <div class="card-title-row">
+            <div class="title-icon">◔</div>
+            <div>
+              <h2>INÍCIO</h2>
+              <p>Conecte seu WhatsApp e acompanhe o estado da sua conta.</p>
+            </div>
+          </div>
+
+          <button id="connectWhatsApp" class="btn primary full" type="button" onclick="(function(){var m=document.getElementById('connectModal'),p=document.getElementById('pairingBox'),i=document.getElementById('pairingPhone'),b=document.getElementById('saveConnect');if(m)m.hidden=false;if(p)p.hidden=true;if(i)i.value='';if(b){b.disabled=false;b.textContent='Conectar';}if(i)i.focus();})()">◔&nbsp; Conectar WhatsApp</button>
+
+          <div class="connected connected-v22">
+            <h4>WhatsApp Conectado</h4>
+            <div id="connectedList"></div>
+          </div>
+        </article>
+      </section>
+
+      <section id="tab-numbers" class="user-tab-panel" aria-labelledby="tab-numbers-link">
+        <article class="panel user-card-v22 authorized-v22">
+          <div class="card-title-row">
+            <div class="title-icon">◉</div>
+            <div>
+              <h2>NÚMEROS ATIVOS</h2>
+              <p>Somente os números realmente conectados aparecem aqui.</p>
+            </div>
+          </div>
+          <div class="panel-head">
+            <h4>NÚMEROS ATIVOS (<span id="authorizedCount">0</span>)</h4>
+            <span>ATIVOS</span>
+          </div>
+          <div id="authorizedList" class="authorized-list"></div>
+        </article>
+      </section>
+
+      <section id="tab-send" class="user-tab-panel" aria-labelledby="tab-send-link">
+        <article class="panel user-card-v22 send-v22">
+          <div class="card-title-row">
+            <div class="title-icon send-icon">➤</div>
+            <div>
+              <h2>ENVIO</h2>
+              <p class="send-card-sub">Digite a mensagem e os números de destino. O sistema envia automaticamente, um por vez.</p>
+            </div>
+          </div>
+
+          <form id="sendForm">
+            <label>Automação de teste</label>
+            <div class="hint-box" style="margin:0 0 8px">Selecione um comando abaixo para usar a mensagem configurada pelo ADM.</div>
+
+            <label for="target">Números de destino</label>
+            <textarea id="target" class="target-input target-textarea" autocomplete="off" inputmode="tel" rows="4" placeholder="Cole um ou vários números. Um por linha." required></textarea>
+            <div class="send-actions-v30">
+              <button id="sendButton" class="btn primary start-btn" type="submit">🚂🚩✌️&nbsp; Enviar</button>
+              <button id="commandsButton" class="command-btn-v30" type="button" aria-haspopup="true" aria-expanded="false">
+                <span class="command-btn-icon">⚡</span>
+                <span>COMANDOS</span>
+                <span class="command-btn-chevron">⌄</span>
+              </button>
+            </div>
+
+            <div id="commandsPanel" class="commands-panel-v30" hidden>
+              <div class="commands-panel-head">
+                <div>
+                  <strong>COMANDOS</strong>
+                  <span>Selecione uma opção</span>
+                </div>
+                <button id="closeCommands" class="commands-close-v30" type="button" aria-label="Fechar comandos">✕</button>
+              </div>
+
+              <button class="command-option-v30" type="button" data-command="Crash Android">
+                <span class="command-option-icon android">🤖</span>
+                <span class="command-option-copy"><strong>Crash Android</strong><small>Selecionar comando Android</small></span>
+                <span class="command-option-check">✓</span>
+              </button>
+
+              <button class="command-option-v30" type="button" data-command="Crash iOS">
+                <span class="command-option-icon ios"></span>
+                <span class="command-option-copy"><strong>Crash iOS</strong><small>Selecionar comando iOS</small></span>
+                <span class="command-option-check">✓</span>
+              </button>
+
+              <div id="selectedCommandV30" class="selected-command-v30" hidden></div>
+              <div class="commands-safe-note-v30">O comando selecionado fica vinculado ao envio e usa a mensagem configurada pelo ADM.</div>
+            </div>
+          </form>
+
+          <div id="sendStatusBox" class="send-status-box" data-state="idle">
+            <div id="sendStatusLine" class="send-status-line">🚂🚩✌️ Aguardando envio</div>
+            <div id="sendStatusDetail" class="send-status-detail">Digite o número e clique em enviar.</div>
+            <div class="send-progress" aria-hidden="true"><div id="sendProgressBar" class="send-progress-bar"></div></div>
+            <div class="send-usage"><span>Envios do plano</span><strong id="sendUsageText">0 / 1.500</strong></div>
+            <div class="send-limit-note">Ao chegar em 1.500 envios, o sistema para automaticamente.</div>
+          </div>
+
+          <div class="sessions sessions-v22">
+            <div class="panel-head">
+              <h4>ÚLTIMOS ENVIOS</h4>
+              <span id="sessionCount">0</span>
+            </div>
+            <div id="sessionList"></div>
+          </div>
+        </article>
+      </section>
+    </main>
+
+    <div id="actionNotice" class="action-notice" data-type="info" hidden></div>
+
+    <div id="activeSendDock" class="active-send-dock" hidden aria-live="polite">
+      <div class="active-send-dock-head"><strong>ENVIO EM ANDAMENTO</strong><span id="activeSendCount">0</span></div>
+      <div id="activeSendDockList"></div>
+    </div>
+
+    <div id="connectModal" class="modal-backdrop" hidden>
+      <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="connectTitle">
+        <div class="modal-head">
+          <div>
+            <h3 id="connectTitle">Conectar WhatsApp</h3>
+            <p id="connectSubtitle">Digite o número e aguarde o código de acesso.</p>
+          </div>
+          <button id="closeModal" type="button" class="icon-btn">✕</button>
+        </div>
+        <div id="connectNumberStatus" class="connect-number-status" hidden></div>
+        <div id="connectState" class="connect-state" data-state="idle">Aguardando número...</div>
+        <div class="connect-howto">
+          <strong>Como conectar</strong>
+          <span>1. Digite o número com DDI, somente números.</span>
+          <span>2. Toque em <b>Conectar</b>.</span>
+          <span>3. O <b>código de conexão</b> aparecerá aqui.</span>
+        </div>
+        <form id="connectForm">
+          <label for="pairingPhone">Número do WhatsApp</label>
+          <input id="pairingPhone" required inputmode="tel" autocomplete="tel" placeholder="5511999999999">
+          <div class="modal-actions">
+            <button id="cancelConnect" type="button" class="btn">Cancelar</button>
+            <button id="saveConnect" type="submit" class="btn primary">Conectar</button>
+          </div>
+        </form>
+        <div id="pairingBox" class="pairing-box" hidden>
+          <div class="pairing-title">CÓDIGO DE PAREAMENTO</div>
+          <div id="pairingCode" class="pairing-code">--------</div>
+          <div class="pairing-steps"><strong>Como conectar:</strong><br>No WhatsApp: <strong>Dispositivos conectados</strong> → <strong>Conectar dispositivo</strong> → <strong>Conectar com número de telefone</strong>. Depois, digite o código mostrado acima.</div>
+        </div>
+      </div>
+    </div>
+
+    <nav class="bottom-nav bottom-nav-v22" aria-label="Navegação do usuário">
+      <a id="tab-home-link" href="#tab-home" class="active" data-tab="home" aria-current="page">⌂<span>Início</span></a>
+      <a id="tab-numbers-link" href="#tab-numbers" data-tab="numbers">◉<span>Números</span></a>
+      <a id="tab-send-link" href="#tab-send" data-tab="send">➤<span>Envio</span></a>
+    </nav>
+
+    <footer class="footer-v22">
+      <div class="footer-copy">
+        <span>Projeto 3.0&nbsp; // &nbsp;Painel do Usuário</span>
+        <strong id="expiryText" class="expiry-text">VALIDADE: CARREGANDO...</strong>
+      </div>
+      <span id="footerDate">19/09/2026</span>
+    </footer>
+  </div>
+  <script type="module" src="user.js"></script>
+
+</body>
+</html>
