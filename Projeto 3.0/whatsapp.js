@@ -247,7 +247,7 @@ async function startSession({ accountId, numberId, requestPairingCode = false })
       if (!loggedOut) {
         if (entry.reconnectTimer) clearTimeout(entry.reconnectTimer);
         entry.reconnectTimer = setTimeout(() => {
-          startSession({ accountId, numberId, requestPairingCode: false }).catch(err => {
+          startSession({ accountId, numberId, requestPairingCode: true }).catch(err => {
             updateRow(numberId, { status: 'error', last_error: friendlyConnectionError(err) });
           });
         }, 2000);
@@ -258,7 +258,7 @@ async function startSession({ accountId, numberId, requestPairingCode = false })
   // O pedido de código é iniciado somente quando chegar o evento `qr`, que
   // indica que o fluxo de pareamento já recebeu uma referência do WhatsApp.
   // Isso evita chamar requestPairingCode cedo demais e receber 428 (Connection Closed).
-  if (requestPairingCode && !state.creds.registered) {
+  if (requestPairingCode
     entry.tryPairing = async () => {
       if (entry.pairingStarted || state.creds.registered || !sockets.has(mapKey)) return;
       await generatePairingCode();
