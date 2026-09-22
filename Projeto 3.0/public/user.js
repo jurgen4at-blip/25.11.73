@@ -718,21 +718,23 @@ document.querySelectorAll('.bottom-nav-v22 a[data-tab]').forEach(link => {
 });
 
 const initialTab = location.hash === '#tab-send' ? 'send' : location.hash === '#tab-numbers' ? 'numbers' : 'home';
-setActiveTab(initialTab);
-initUser();
-
+let isFetching = false;
 const whatsappRefreshTimer = window.setInterval(async () => {
+if (isFetching) return; // Se a requisição anterior ainda não acabou, não dispara outra!
+isFetching = true;
 try {
 await loadWhatsAppNumbers();
 await loadUsage();
 await loadSendConfig();
 const me = await api('/api/me');
 const expiry = $('#expiryText');
-if (expiry) expiry.textContent = formatExpiry(me.expires_at);
+if (expiry && me) expiry.textContent = formatExpiry(me.expires_at);
 } catch (e) {
 console.error(e);
+} finally {
+isFetching = false;
 }
-}, 2500);
+}, 5000); // Aumentado para 5 segundos para não sufocar a rede
 
 window.addEventListener('beforeunload', () => {
 if (whatsappRefreshTimer) clearInterval(whatsappRefreshTimer);
