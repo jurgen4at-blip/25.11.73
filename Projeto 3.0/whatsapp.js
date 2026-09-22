@@ -191,7 +191,7 @@ async function startSession({ accountId, numberId, requestPairingCode = false })
       return null;
     }
   };
-
+entry.tryPairing = generatePairingCode;
   sock.ev.on('connection.update', async (update) => {
     const { connection, lastDisconnect, isNewLogin, qr } = update;
 
