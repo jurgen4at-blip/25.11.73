@@ -258,12 +258,9 @@ async function startSession({ accountId, numberId, requestPairingCode = false })
   // O pedido de código é iniciado somente quando chegar o evento `qr`, que
   // indica que o fluxo de pareamento já recebeu uma referência do WhatsApp.
   // Isso evita chamar requestPairingCode cedo demais e receber 428 (Connection Closed).
-  if (requestPairingCode
-    
-      
-      await generatePairingCode();
-    };
-  }
+  if (requestPairingCode) {
+await generatePairingCode();
+}
 
   return entry;
 }
