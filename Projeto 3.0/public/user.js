@@ -640,7 +640,7 @@ setState(
 );
 }
   btn.disabled = false;
-  btn.textContent = '📤 Tentar novamente';
+  btn.textContent = '📤 Tentar novamente');
 }
   });
 }
