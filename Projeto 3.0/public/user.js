@@ -502,16 +502,20 @@ function startPairingPoll(id, phone) {
         setConnectModalState('error', `❌ ${row.last_error || 'Não foi possível gerar o código.'}`, phone);
         return;
       }
-      if (row.status === 'connected') {
-        stopPairingPoll();
-        $('#connectModal').hidden = true;
-        showNotice('WhatsApp conectado com sucesso.', 'ok');
-        await loadWhatsAppNumbers();
-      }
-    } catch (_) {}
-  };
-  tick();
-  pairingPollTimer = window.setInterval(tick, 700);
+      console.log(
+  'STATUS WHATSAPP:',
+  row.status,
+  'CODIGO:',
+  row.last_pairing_code,
+  'ERRO:',
+  row.last_error
+);
+
+if (row.status === 'connected') {
+  stopPairingPoll();
+  $('#connectModal').hidden = true;
+  showNotice('WhatsApp conectado com sucesso.', 'ok');
+  await loadWhatsAppNumbers();
 }
 
 
