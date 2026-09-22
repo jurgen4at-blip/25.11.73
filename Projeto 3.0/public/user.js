@@ -639,13 +639,9 @@ while (true) {
 await runAutomaticSend(targets, btn, targetInput);
 }
 } catch (error) {
-setState(
-'error',
-'❌ FALHA NO ENVIO',
-error.message || 'Não foi possível enviar a mensagem.',
-0
-);
+  setState('error', '❌ FALHA NO ENVIO', error.message || 'Não foi possível enviar a mensagem.', 0);
 }
+
 
 btn.disabled = false;
 btn.textContent = '📑 Tentar novamente';
