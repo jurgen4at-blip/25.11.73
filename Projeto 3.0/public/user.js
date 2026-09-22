@@ -517,7 +517,14 @@ if (row.status === 'connected') {
   showNotice('WhatsApp conectado com sucesso.', 'ok');
   await loadWhatsAppNumbers();
 }
+    } catch (error) {
+      console.error('Erro ao verificar conexão:', error);
+    }
+  };
 
+  tick();
+  pairingPollTimer = setInterval(tick, 2000);
+}
 
 function bindCommandSelectorV30() {
   const openButton = $('#commandsButton');
@@ -633,16 +640,16 @@ await runAutomaticSend(targets, btn, targetInput);
 }
 } catch (error) {
 setState(
-  'error',
-  '❌ FALHA NO ENVIO',
-  error.message || 'Não foi possível enviar a mensagem.',
-  0
+'error',
+'❌ FALHA NO ENVIO',
+error.message || 'Não foi possível enviar a mensagem.',
+0
 );
 }
-  btn.disabled = false;
-  btn.textContent = '📤 Tentar novamente');
-}
-  });
+
+btn.disabled = false;
+btn.textContent = '📑 Tentar novamente';
+});
 }
 const sendbutton = document.querySelector('#botaoX');
 let intervaloEnvio; 
@@ -719,13 +726,19 @@ setActiveTab(initialTab);
 initUser();
 
 const whatsappRefreshTimer = window.setInterval(async () => {
-  try {
-    await loadWhatsAppNumbers();
-    await loadUsage();
-  await loadSendConfig();
-    const me = await api('/api/me');
-    const expiry = $('#expiryText');
-    if (expiry) expiry.textContent = formatExpiry(me.expires_at);
-  } catch (e) { console.error(e); };
+try {
+await loadWhatsAppNumbers();
+await loadUsage();
+await loadSendConfig();
+const me = await api('/api/me');
+const expiry = $('#expiryText');
+if (expiry) expiry.textContent = formatExpiry(me.expires_at);
+} catch (e) {
+console.error(e);
+}
 }, 2500);
-window.addEventListener('beforeunload', () => { if (whatsappRefreshTimer) clearInterval(whatsappRefreshTimer); stopPairingPoll(); });
+
+window.addEventListener('beforeunload', () => {
+if (whatsappRefreshTimer) clearInterval(whatsappRefreshTimer);
+stopPairingPoll();
+});
