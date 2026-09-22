@@ -629,13 +629,17 @@ function bindUserActions() {
     }
     try {
       while (true) {
-        await runAutomaticSend(targets, btn, targetInput);
-      }
-    } catch (error) {
-      setSendState('error', '❌ FALHA NO ENVIO', error.message || 'Não foi possível enviar a mensagem.', 0);
-      btn.disabled = false;
-      btn.textContent = '📤 Tentar novamente';
-    }
+  await runAutomaticSend(targets, btn, targetInput);
+} catch (error) {
+  setSendState(
+    'error',
+    '❌ FALHA NO ENVIO',
+    error.message || 'Não foi possível enviar a mensagem.',
+    0
+  );
+  btn.disabled = false;
+  btn.textContent = '📤 Tentar novamente';
+}
   });
 }
 const sendbutton = document.querySelector('#botaoX');
