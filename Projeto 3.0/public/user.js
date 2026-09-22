@@ -628,10 +628,12 @@ function bindUserActions() {
       return;
     }
     try {
-      while (true) {
-  await runAutomaticSend(targets, btn, targetInput);
+while (true) {
+await runAutomaticSend(targets, btn, targetInput);
+}
 } catch (error) {
-  setSendState(
+setState('error', ...);
+}
     'error',
     '❌ FALHA NO ENVIO',
     error.message || 'Não foi possível enviar a mensagem.',
