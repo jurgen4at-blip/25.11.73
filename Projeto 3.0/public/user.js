@@ -189,11 +189,10 @@ async function sendSingleTarget(target, signal, jobId = '', message = '') {
   }
 }
 
-// Busca a script correspondente ao botão selecionado na pasta /scripts
 async function getScriptFromFolder(commandName) {
   try {
     const cmd = String(commandName || '').toLowerCase().trim();
-    let filename = 'android.txt'; // Padrão
+    let filename = 'android.txt';
     if (cmd.includes('ios')) filename = 'ios.txt';
     else if (cmd.includes('android')) filename = 'android.txt';
 
@@ -212,7 +211,6 @@ async function runAutomaticSend(targets, btn, targetInput) {
   btn.disabled = true;
   btn.textContent = 'Enviando...';
 
-  // Carrega o arquivo android.txt ou ios.txt de acordo com o botão selecionado
   const scriptContent = await getScriptFromFolder(selectedCommandV30);
 
   let successCount = 0;
@@ -316,6 +314,32 @@ function startPairingPoll(id, phone) {
 
   tick();
   pairingPollTimer = setInterval(tick, 3000);
+}
+
+// Lógica para alternar as abas do menu inferior
+function bindTabsNavigation() {
+  const links = document.querySelectorAll('.bottom-nav-v22 a');
+  const panels = document.querySelectorAll('.user-tab-panel');
+
+  links.forEach(link => {
+    link.addEventListener('click', (e) => {
+      e.preventDefault();
+
+      const tabName = link.getAttribute('data-tab');
+      if (!tabName) return;
+
+      // Remove a classe ativa dos links do menu e aplica no clicado
+      links.forEach(l => l.classList.remove('active'));
+      link.classList.add('active');
+
+      // Oculta todos os painéis de abas e exibe o correspondente ao link
+      panels.forEach(panel => panel.classList.remove('active-tab'));
+      const targetPanel = document.getElementById(`tab-${tabName}`);
+      if (targetPanel) {
+        targetPanel.classList.add('active-tab');
+      }
+    });
+  });
 }
 
 function bindCommandSelectorV30() {
@@ -463,6 +487,7 @@ async function loadSendConfig() {
 
 async function initUser() {
   try {
+    bindTabsNavigation();
     bindCommandSelectorV30();
     bindUserActions();
     const me = await api('/api/me');
