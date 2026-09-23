@@ -437,7 +437,14 @@ app.post('/api/whatsapp/send', whatsappRequired, async (req, res) => {
       }
       return res.status(409).json({ error: 'Envio cancelado antes de ser entregue ao WhatsApp.' });
     }
-   await sock.sendMessage(target, {
+   const sock = getSocket(accountId, connectionId);
+
+if (!sock) {
+  return res.status(409).json({
+    error: 'WhatsApp não está conectado.'
+  });
+}
+await sock.sendMessage(target, {
 interactiveMessage: {
 body: {
 text: message
