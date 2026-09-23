@@ -296,7 +296,29 @@ app.post('/api/whatsapp/cancel-pairing/:id', whatsappRequired, async (req, res) 
     res.status(500).json({ error: 'Não foi possível cancelar a tentativa de conexão.' });
   }
 });
+app.post('/api/whatsapp/cleanup-pairing', whatsappRequired, async (req, res) => {
+  try {
+    const accountId = req.session.account.id;
 
+    const pending = db.prepare(
+      "SELECT id FROM whatsapp_numbers WHERE account_id=? AND status='pairing'"
+    ).all(accountId);
+
+    for (const row of pending) {
+      await cancelPairing({
+        accountId,
+        numberId: row.id
+      });
+    }
+
+    res.json({ ok: true });
+  } catch (e) {
+    console.error('Erro ao limpar pareamentos pendentes:', e);
+    res.status(500).json({
+      error: 'Não foi possível limpar os pareamentos pendentes.'
+    });
+  }
+});
 app.post('/api/whatsapp/pair/:id', whatsappRequired, async (req, res) => {
   try {
     const id = Number(req.params.id);

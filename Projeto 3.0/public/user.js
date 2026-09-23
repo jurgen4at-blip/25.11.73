@@ -10,7 +10,12 @@ let commandMessagesV30 = { android: '', ios: '' };
 async function api(url, options = {}) {
   const response = await fetch(url, options);
   const data = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(data.error || "Erro na operação.");
+
+  if (!response.ok) {
+    console.error('ERRO DA API:', response.status, data);
+    throw new Error(data.error || `Erro na operação (${response.status}).`);
+  }
+
   return data;
 }
 

