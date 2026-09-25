@@ -247,7 +247,7 @@ entry.tryPairing = generatePairingCode;
       if (!loggedOut) {
         if (entry.reconnectTimer) clearTimeout(entry.reconnectTimer);
         entry.reconnectTimer = setTimeout(() => {
-          startSession({ accountId, numberId, requestPairingCode: true }).catch(err => {
+          startSession({ accountId, numberId, requestPairingCode: false }).catch(err => {
             updateRow(numberId, { status: 'error', last_error: friendlyConnectionError(err) });
           });
         }, 2000);
@@ -475,5 +475,6 @@ requestPairingCode,
 disconnectNumber,
 cancelPairing,
 sendTextMessage,
-restoreAllSessions
+restoreAllSessions,
+getSocket,
 };
